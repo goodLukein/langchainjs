@@ -5,18 +5,6 @@
   "engines": {
     "node": ">=18"
   },
-  "workspaces": [
-    "langchain",
-    "examples",
-    "docs",
-    "test-exports-esbuild",
-    "test-exports-esm",
-    "test-exports-cjs",
-    "test-exports-cf",
-    "test-exports-cra",
-    "test-exports-vercel",
-    "test-exports-vite"
-  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/goodLukein/langchainjs.git"
