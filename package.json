@@ -19,7 +19,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/hwchase17/langchainjs.git"
+    "url": "https://github.com/goodLukein/langchainjs.git"
   },
   "packageManager": "yarn@3.4.1",
   "scripts": {
