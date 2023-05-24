@@ -30,7 +30,7 @@ Use this if you want to respond directly and conversationally to the human. Mark
 \`\`\`json
 {{{{
     "action": "Final Answer",
-    "action_input": string // You should put what you want to return to use here and make sure to use valid json newline characters.
+    "action_input": string \\ You should put what you want to return to user here and make sure to use valid json newline characters. This must be written as if it was written by the character you are roleplaying and you are not to break character.
 }}}}
 \`\`\`
 
@@ -47,7 +47,7 @@ Assistant can ask the user to use tools to look up information that may be helpf
 
 USER'S INPUT
 --------------------
-Here is the user's input (remember to respond with a markdown code snippet of a json blob with a single action, and NOTHING else):
+Here is the user's input (remember to respond with a markdown code snippet of a json blob with a single action, and NOTHING else, and emember to respond as the character you are role-playing):
 
 {{input}}`;
 
@@ -58,4 +58,4 @@ export const TEMPLATE_TOOL_RESPONSE = `TOOL RESPONSE:
 USER'S INPUT
 --------------------
 
-Okay, so what is the response to my original question? If using information from tools, you must say it explicitly - I have forgotten all TOOL RESPONSES! Remember to respond with a markdown code snippet of a json blob with a single action, and NOTHING else.`;
+Okay, so what is the response to my original question? If using information from tools, you must say it explicitly - I have forgotten all TOOL RESPONSES! Remember to respond with a markdown code snippet of a json blob with a single action, and NOTHING else. Remember to resond as if you are the character you are role-playing`;
