@@ -74,12 +74,10 @@ class DynamoDBChatMessageHistory extends index_js_1.BaseListChatMessageHistory {
         const messages = items
             .map((item) => ({
             type: item.M?.type.S,
-            data: {
-                role: item.M?.role?.S,
-                content: item.M?.text.S,
-            },
+            role: item.M?.role?.S,
+            text: item.M?.text.S,
         }))
-            .filter((x) => x.type !== undefined && x.data.content !== undefined);
+            .filter((x) => x.type !== undefined && x.text !== undefined);
         return (0, utils_js_1.mapStoredMessagesToChatMessages)(messages);
     }
     async clear() {
@@ -109,12 +107,12 @@ class DynamoDBChatMessageHistory extends index_js_1.BaseListChatMessageHistory {
                                     S: message.type,
                                 },
                                 text: {
-                                    S: message.data.content,
+                                    S: message.text,
                                 },
                             },
                         };
-                        if (message.data.role) {
-                            dynamoSerializedMessage.M.role = { S: message.data.role };
+                        if (message.role) {
+                            dynamoSerializedMessage.M.role = { S: message.role };
                         }
                         return dynamoSerializedMessage;
                     }),

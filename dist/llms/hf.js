@@ -64,10 +64,10 @@ export class HuggingFaceInference extends LLM {
         return "huggingface_hub";
     }
     /** @ignore */
-    async _call(prompt, options) {
+    async _call(prompt, _stop) {
         const { HfInference } = await HuggingFaceInference.imports();
         const hf = new HfInference(this.apiKey);
-        const res = await this.caller.callWithOptions({ signal: options.signal }, hf.textGeneration.bind(hf), {
+        const res = await this.caller.call(hf.textGeneration.bind(hf), {
             model: this.model,
             parameters: {
                 // make it behave similar to openai, returning only the generated text

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.WriteFileTool = exports.ReadFileTool = exports.AIPluginTool = exports.Serper = exports.ZapierNLAWrapper = exports.ZapierNLARunAction = exports.VectorStoreQATool = exports.RequestsPostTool = exports.RequestsGetTool = exports.JsonGetValueTool = exports.JsonListKeysTool = exports.JsonSpec = exports.QueryCheckerTool = exports.ListTablesSqlTool = exports.InfoSqlTool = exports.QuerySqlTool = exports.ChainTool = exports.IFTTTWebhook = exports.DynamicStructuredTool = exports.DynamicTool = exports.StructuredTool = exports.Tool = exports.BingSerpAPI = exports.DadJokeAPI = exports.SerpAPI = void 0;
+exports.WriteFileTool = exports.ReadFileTool = exports.AIPluginTool = exports.Serper = exports.ZapierNLAWrapper = exports.ZapierNLARunAction = exports.VectorStoreQATool = exports.RequestsPostTool = exports.RequestsGetTool = exports.JsonGetValueTool = exports.JsonListKeysTool = exports.JsonSpec = exports.QueryCheckerTool = exports.ListTablesSqlTool = exports.InfoSqlTool = exports.QuerySqlTool = exports.ChainTool = exports.IFTTTWebhook = exports.DynamicTool = exports.StructuredTool = exports.Tool = exports.BingSerpAPI = exports.DadJokeAPI = exports.SerpAPI = void 0;
 var serpapi_js_1 = require("./serpapi.cjs");
 Object.defineProperty(exports, "SerpAPI", { enumerable: true, get: function () { return serpapi_js_1.SerpAPI; } });
 var dadjokeapi_js_1 = require("./dadjokeapi.cjs");
@@ -12,7 +12,6 @@ Object.defineProperty(exports, "Tool", { enumerable: true, get: function () { re
 Object.defineProperty(exports, "StructuredTool", { enumerable: true, get: function () { return base_js_1.StructuredTool; } });
 var dynamic_js_1 = require("./dynamic.cjs");
 Object.defineProperty(exports, "DynamicTool", { enumerable: true, get: function () { return dynamic_js_1.DynamicTool; } });
-Object.defineProperty(exports, "DynamicStructuredTool", { enumerable: true, get: function () { return dynamic_js_1.DynamicStructuredTool; } });
 var IFTTTWebhook_js_1 = require("./IFTTTWebhook.cjs");
 Object.defineProperty(exports, "IFTTTWebhook", { enumerable: true, get: function () { return IFTTTWebhook_js_1.IFTTTWebhook; } });
 var chain_js_1 = require("./chain.cjs");

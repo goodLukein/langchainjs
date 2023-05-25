@@ -31,9 +31,6 @@ const DEFAULT_STOP_SEQUENCES = [sdk_1.HUMAN_PROMPT];
  *
  */
 class ChatAnthropic extends base_js_1.BaseChatModel {
-    get callKeys() {
-        return ["stop", "signal", "options"];
-    }
     constructor(fields) {
         super(fields ?? {});
         Object.defineProperty(this, "apiKey", {
@@ -163,18 +160,18 @@ class ChatAnthropic extends base_js_1.BaseChatModel {
             .join("") + sdk_1.AI_PROMPT);
     }
     /** @ignore */
-    async _generate(messages, options, runManager) {
-        if (this.stopSequences && options.stop) {
+    async _generate(messages, stopSequences, runManager) {
+        if (this.stopSequences && stopSequences) {
             throw new Error(`"stopSequence" parameter found in input and default params`);
         }
         const params = this.invocationParams();
-        params.stop_sequences = options.stop
-            ? options.stop.concat(DEFAULT_STOP_SEQUENCES)
+        params.stop_sequences = stopSequences
+            ? stopSequences.concat(DEFAULT_STOP_SEQUENCES)
             : params.stop_sequences;
         const response = await this.completionWithRetry({
             ...params,
             prompt: this.formatMessagesAsPrompt(messages),
-        }, { signal: options.signal }, runManager);
+        }, runManager);
         const generations = response.completion
             .split(sdk_1.AI_PROMPT)
             .map((message) => ({
@@ -186,7 +183,7 @@ class ChatAnthropic extends base_js_1.BaseChatModel {
         };
     }
     /** @ignore */
-    async completionWithRetry(request, options, runManager) {
+    async completionWithRetry(request, runManager) {
         if (!this.apiKey) {
             throw new Error("Missing Anthropic API key.");
         }
@@ -197,8 +194,7 @@ class ChatAnthropic extends base_js_1.BaseChatModel {
             }
             makeCompletionRequest = async () => {
                 let currentCompletion = "";
-                return (this.streamingClient
-                    .completeStream(request, {
+                return this.streamingClient.completeStream(request, {
                     onUpdate: (data) => {
                         if (data.stop_reason) {
                             return;
@@ -211,37 +207,14 @@ class ChatAnthropic extends base_js_1.BaseChatModel {
                             void runManager?.handleLLMNewToken(delta ?? "");
                         }
                     },
-                    signal: options.signal,
-                })
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    .catch((e) => {
-                    // Anthropic doesn't actually throw JavaScript error objects at the moment.
-                    // We convert the error so the async caller can recognize it correctly.
-                    if (e?.name === "AbortError") {
-                        throw new Error(`${e.name}: ${e.message}`);
-                    }
-                    throw e;
-                }));
+                });
             };
         }
         else {
             if (!this.batchClient) {
                 this.batchClient = new sdk_1.Client(this.apiKey);
             }
-            makeCompletionRequest = async () => this.batchClient
-                .complete(request, {
-                signal: options.signal,
-            })
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                .catch((e) => {
-                console.log(e);
-                // Anthropic doesn't actually throw JavaScript error objects at the moment.
-                // We convert the error so the async caller can recognize it correctly.
-                if (e?.type === "aborted") {
-                    throw new Error(`${e.name}: ${e.message}`);
-                }
-                throw e;
-            });
+            makeCompletionRequest = async () => this.batchClient.complete(request);
         }
         return this.caller.call(makeCompletionRequest);
     }

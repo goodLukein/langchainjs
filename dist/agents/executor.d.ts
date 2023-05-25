@@ -1,12 +1,13 @@
 import { BaseChain, ChainInputs } from "../chains/base.js";
 import { BaseMultiActionAgent, BaseSingleActionAgent } from "./agent.js";
+import { Tool } from "../tools/base.js";
 import { StoppingMethod } from "./types.js";
 import { SerializedLLMChain } from "../chains/serde.js";
 import { ChainValues } from "../schema/index.js";
 import { CallbackManagerForChainRun } from "../callbacks/manager.js";
 export interface AgentExecutorInput extends ChainInputs {
     agent: BaseSingleActionAgent | BaseMultiActionAgent;
-    tools: this["agent"]["ToolType"][];
+    tools: Tool[];
     returnIntermediateSteps?: boolean;
     maxIterations?: number;
     earlyStoppingMethod?: StoppingMethod;
@@ -17,7 +18,7 @@ export interface AgentExecutorInput extends ChainInputs {
  */
 export declare class AgentExecutor extends BaseChain {
     agent: BaseSingleActionAgent | BaseMultiActionAgent;
-    tools: this["agent"]["ToolType"][];
+    tools: Tool[];
     returnIntermediateSteps: boolean;
     maxIterations?: number;
     earlyStoppingMethod: StoppingMethod;

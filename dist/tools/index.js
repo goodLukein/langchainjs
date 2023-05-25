@@ -2,7 +2,7 @@ export { SerpAPI } from "./serpapi.js";
 export { DadJokeAPI } from "./dadjokeapi.js";
 export { BingSerpAPI } from "./bingserpapi.js";
 export { Tool, StructuredTool } from "./base.js";
-export { DynamicTool, DynamicStructuredTool, } from "./dynamic.js";
+export { DynamicTool } from "./dynamic.js";
 export { IFTTTWebhook } from "./IFTTTWebhook.js";
 export { ChainTool } from "./chain.js";
 export { QuerySqlTool, InfoSqlTool, ListTablesSqlTool, QueryCheckerTool, } from "./sql.js";

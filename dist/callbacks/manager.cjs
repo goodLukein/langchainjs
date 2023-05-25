@@ -5,7 +5,6 @@ const uuid_1 = require("uuid");
 const base_js_1 = require("./base.cjs");
 const console_js_1 = require("./handlers/console.cjs");
 const initialize_js_1 = require("./handlers/initialize.cjs");
-const base_js_2 = require("../memory/base.cjs");
 class BaseCallbackManager {
     setHandler(handler) {
         return this.setHandlers([handler]);
@@ -210,30 +209,11 @@ class CallbackManager extends BaseCallbackManager {
         this.inheritableHandlers = [];
         this._parentRunId = parentRunId;
     }
-    async handleLLMStart(llm, prompts, runId = (0, uuid_1.v4)(), _parentRunId = undefined, extraParams = undefined) {
+    async handleLLMStart(llm, prompts, runId = (0, uuid_1.v4)()) {
         await Promise.all(this.handlers.map(async (handler) => {
             if (!handler.ignoreLLM) {
                 try {
-                    await handler.handleLLMStart?.(llm, prompts, runId, this._parentRunId, extraParams);
-                }
-                catch (err) {
-                    console.error(`Error in handler ${handler.constructor.name}, handleLLMStart: ${err}`);
-                }
-            }
-        }));
-        return new CallbackManagerForLLMRun(runId, this.handlers, this.inheritableHandlers, this._parentRunId);
-    }
-    async handleChatModelStart(llm, messages, runId = (0, uuid_1.v4)(), _parentRunId = undefined, extraParams = undefined) {
-        let messageStrings;
-        await Promise.all(this.handlers.map(async (handler) => {
-            if (!handler.ignoreLLM) {
-                try {
-                    if (handler.handleChatModelStart)
-                        await handler.handleChatModelStart?.(llm, messages, runId, this._parentRunId, extraParams);
-                    else if (handler.handleLLMStart) {
-                        messageStrings = messages.map((x) => (0, base_js_2.getBufferString)(x));
-                        await handler.handleLLMStart?.(llm, messageStrings, runId, this._parentRunId, extraParams);
-                    }
+                    await handler.handleLLMStart?.(llm, prompts, runId, this._parentRunId);
                 }
                 catch (err) {
                     console.error(`Error in handler ${handler.constructor.name}, handleLLMStart: ${err}`);
@@ -334,40 +314,26 @@ class CallbackManager extends BaseCallbackManager {
                 ? localHandlers.map(ensureHandler)
                 : localHandlers?.handlers, false);
         }
-        const verboseEnabled = (typeof process !== "undefined"
+        const tracingEnabled = typeof process !== "undefined"
             ? // eslint-disable-next-line no-process-env
-                process.env?.LANGCHAIN_VERBOSE !== undefined
-            : false) || options?.verbose;
-        const tracingV2Enabled = typeof process !== "undefined"
-            ? // eslint-disable-next-line no-process-env
-                process.env?.LANGCHAIN_TRACING_V2 !== undefined
+                process.env?.LANGCHAIN_TRACING !== undefined
             : false;
-        const tracingEnabled = tracingV2Enabled ||
-            (typeof process !== "undefined"
-                ? // eslint-disable-next-line no-process-env
-                    process.env?.LANGCHAIN_TRACING !== undefined
-                : false);
-        if (verboseEnabled || tracingEnabled) {
+        if (options?.verbose || tracingEnabled) {
             if (!callbackManager) {
                 callbackManager = new CallbackManager();
             }
-            if (verboseEnabled &&
+            if (options?.verbose &&
                 !callbackManager.handlers.some((handler) => handler.name === console_js_1.ConsoleCallbackHandler.prototype.name)) {
                 const consoleHandler = new console_js_1.ConsoleCallbackHandler();
                 callbackManager.addHandler(consoleHandler, true);
             }
             if (tracingEnabled &&
                 !callbackManager.handlers.some((handler) => handler.name === "langchain_tracer")) {
-                if (tracingV2Enabled) {
-                    callbackManager.addHandler(await (0, initialize_js_1.getTracingV2CallbackHandler)(), true);
-                }
-                else {
-                    const session = typeof process !== "undefined"
-                        ? // eslint-disable-next-line no-process-env
-                            process.env?.LANGCHAIN_SESSION
-                        : undefined;
-                    callbackManager.addHandler(await (0, initialize_js_1.getTracingCallbackHandler)(session), true);
-                }
+                const session = typeof process !== "undefined"
+                    ? // eslint-disable-next-line no-process-env
+                        process.env?.LANGCHAIN_SESSION
+                    : undefined;
+                callbackManager.addHandler(await (0, initialize_js_1.getTracingCallbackHandler)(session), true);
             }
         }
         return callbackManager;

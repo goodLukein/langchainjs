@@ -1,5 +1,5 @@
 import { Configuration, OpenAIApi, } from "openai";
-import { isNode } from "../util/env.js";
+import { isNode } from "browser-or-node";
 import fetchAdapter from "../util/axios-fetch-adapter.js";
 import { chunkArray } from "../util/chunk.js";
 import { Embeddings } from "./base.js";
@@ -153,7 +153,7 @@ export class OpenAIEmbeddings extends Embeddings {
                 basePath: endpoint,
                 baseOptions: {
                     timeout: this.timeout,
-                    adapter: isNode() ? undefined : fetchAdapter,
+                    adapter: isNode ? undefined : fetchAdapter,
                     ...this.clientConfig.baseOptions,
                 },
             });

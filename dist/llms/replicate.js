@@ -34,13 +34,13 @@ export class Replicate extends LLM {
         return "replicate";
     }
     /** @ignore */
-    async _call(prompt, options) {
+    async _call(prompt, _stop) {
         const imports = await Replicate.imports();
         const replicate = new imports.Replicate({
             userAgent: "langchain",
             auth: this.apiKey,
         });
-        const output = await this.caller.callWithOptions({ signal: options.signal }, () => replicate.run(this.model, {
+        const output = await this.caller.call(() => replicate.run(this.model, {
             wait: true,
             input: {
                 ...this.input,

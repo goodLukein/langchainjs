@@ -1,6 +1,5 @@
 export { BaseExampleSelector, BasePromptTemplate, BasePromptTemplateInput, StringPromptValue, BaseStringPromptTemplate, } from "./base.js";
 export { PromptTemplate, PromptTemplateInput } from "./prompt.js";
-export { BasePromptSelector, ConditionalPromptSelector, isChatModel, isLLM, } from "./selectors/conditional.js";
 export { LengthBasedExampleSelector, LengthBasedExampleSelectorInput, } from "./selectors/LengthBasedExampleSelector.js";
 export { SemanticSimilarityExampleSelector, SemanticSimilarityExampleSelectorInput, } from "./selectors/SemanticSimilarityExampleSelector.js";
 export { FewShotPromptTemplate, FewShotPromptTemplateInput, } from "./few_shot.js";

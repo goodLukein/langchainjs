@@ -1,4 +1,3 @@
-import { Ignore } from "ignore";
 import { Document } from "../../document.js";
 import { BaseDocumentLoader } from "../base.js";
 import { UnknownHandling } from "../fs/directory.js";
@@ -8,7 +7,6 @@ export interface GithubRepoLoaderParams {
     unknown?: UnknownHandling;
     accessToken?: string;
     ignoreFiles?: (string | RegExp)[];
-    ignorePaths?: string[];
 }
 export declare class GithubRepoLoader extends BaseDocumentLoader implements GithubRepoLoaderParams {
     private readonly owner;
@@ -20,11 +18,10 @@ export declare class GithubRepoLoader extends BaseDocumentLoader implements Gith
     unknown: UnknownHandling;
     accessToken?: string;
     ignoreFiles: (string | RegExp)[];
-    ignore?: Ignore;
-    constructor(githubUrl: string, { accessToken, branch, recursive, unknown, ignoreFiles, ignorePaths, }?: GithubRepoLoaderParams);
+    constructor(githubUrl: string, { accessToken, branch, recursive, unknown, ignoreFiles, }?: GithubRepoLoaderParams);
     private extractOwnerAndRepoAndPath;
     load(): Promise<Document[]>;
-    protected shouldIgnore(path: string, fileType: string): Promise<boolean>;
+    private shouldIgnore;
     private processDirectory;
     private fetchRepoFiles;
     private fetchFileContent;

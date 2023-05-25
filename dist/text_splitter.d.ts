@@ -1,21 +1,16 @@
-import type * as tiktoken from "js-tiktoken";
+import type * as tiktoken from "@dqbd/tiktoken";
 import { Document } from "./document.js";
 export interface TextSplitterParams {
     chunkSize: number;
     chunkOverlap: number;
 }
-export type TextSplitterChunkHeaderOptions = {
-    chunkHeader?: string;
-    chunkOverlapHeader?: string;
-    appendChunkOverlapHeader?: boolean;
-};
 export declare abstract class TextSplitter implements TextSplitterParams {
     chunkSize: number;
     chunkOverlap: number;
     constructor(fields?: Partial<TextSplitterParams>);
     abstract splitText(text: string): Promise<string[]>;
-    createDocuments(texts: string[], metadatas?: Record<string, any>[], chunkHeaderOptions?: TextSplitterChunkHeaderOptions): Promise<Document[]>;
-    splitDocuments(documents: Document[], chunkHeaderOptions?: TextSplitterChunkHeaderOptions): Promise<Document[]>;
+    createDocuments(texts: string[], metadatas?: Record<string, any>[]): Promise<Document[]>;
+    splitDocuments(documents: Document[]): Promise<Document[]>;
     private joinDocs;
     mergeSplits(splits: string[], separator: string): string[];
 }
@@ -48,8 +43,10 @@ export declare class TokenTextSplitter extends TextSplitter implements TokenText
     allowedSpecial: "all" | Array<string>;
     disallowedSpecial: "all" | Array<string>;
     private tokenizer;
+    private registry;
     constructor(fields?: Partial<TokenTextSplitterParams>);
     splitText(text: string): Promise<string[]>;
+    static imports(): Promise<typeof tiktoken>;
 }
 export type MarkdownTextSplitterParams = TextSplitterParams;
 export declare class MarkdownTextSplitter extends RecursiveCharacterTextSplitter implements MarkdownTextSplitterParams {

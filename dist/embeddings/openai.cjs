@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OpenAIEmbeddings = void 0;
 const openai_1 = require("openai");
-const env_js_1 = require("../util/env.cjs");
+const browser_or_node_1 = require("browser-or-node");
 const axios_fetch_adapter_js_1 = __importDefault(require("../util/axios-fetch-adapter.cjs"));
 const chunk_js_1 = require("../util/chunk.cjs");
 const base_js_1 = require("./base.cjs");
@@ -159,7 +159,7 @@ class OpenAIEmbeddings extends base_js_1.Embeddings {
                 basePath: endpoint,
                 baseOptions: {
                     timeout: this.timeout,
-                    adapter: (0, env_js_1.isNode)() ? undefined : axios_fetch_adapter_js_1.default,
+                    adapter: browser_or_node_1.isNode ? undefined : axios_fetch_adapter_js_1.default,
                     ...this.clientConfig.baseOptions,
                 },
             });

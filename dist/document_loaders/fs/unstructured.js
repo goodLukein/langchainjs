@@ -38,12 +38,6 @@ export class UnstructuredLoader extends BaseDocumentLoader {
             writable: true,
             value: void 0
         });
-        Object.defineProperty(this, "strategy", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
         // Temporary shim to avoid breaking existing users
         // Remove when API keys are enforced by Unstructured and existing code will break anyway
         const isLegacySyntax = typeof optionsOrLegacyFilePath === "string";
@@ -55,7 +49,6 @@ export class UnstructuredLoader extends BaseDocumentLoader {
             this.filePath = filePathOrLegacyApiUrl;
             this.apiKey = optionsOrLegacyFilePath.apiKey;
             this.apiUrl = optionsOrLegacyFilePath.apiUrl ?? this.apiUrl;
-            this.strategy = optionsOrLegacyFilePath.strategy ?? "hi_res";
         }
     }
     async _partition() {
@@ -69,7 +62,6 @@ export class UnstructuredLoader extends BaseDocumentLoader {
         formData.append("files", new Blob([buffer]), fileName);
         const headers = {
             "UNSTRUCTURED-API-KEY": this.apiKey ?? "",
-            strategy: this.strategy,
         };
         const response = await fetch(this.apiUrl, {
             method: "POST",

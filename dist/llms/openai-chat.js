@@ -1,5 +1,5 @@
+import { isNode } from "browser-or-node";
 import { Configuration, OpenAIApi, } from "openai";
-import { isNode } from "../util/env.js";
 import fetchAdapter from "../util/axios-fetch-adapter.js";
 import { LLM } from "./base.js";
 /**
@@ -25,9 +25,6 @@ import { LLM } from "./base.js";
  * @augments AzureOpenAIChatInput
  */
 export class OpenAIChat extends LLM {
-    get callKeys() {
-        return ["stop", "signal", "timeout", "options"];
-    }
     constructor(fields, configuration) {
         super(fields ?? {});
         Object.defineProperty(this, "temperature", {
@@ -252,8 +249,16 @@ export class OpenAIChat extends LLM {
         return this.prefixMessages ? [...this.prefixMessages, message] : [message];
     }
     /** @ignore */
-    async _call(prompt, options, runManager) {
-        const { stop } = options;
+    async _call(prompt, stopOrOptions, runManager) {
+        const stop = Array.isArray(stopOrOptions)
+            ? stopOrOptions
+            : stopOrOptions?.stop;
+        const options = Array.isArray(stopOrOptions)
+            ? {}
+            : stopOrOptions?.options ?? {};
+        if (this.stop && stop) {
+            throw new Error("Stop found in input and default params");
+        }
         const params = this.invocationParams();
         params.stop = stop ?? params.stop;
         const data = params.stream
@@ -265,8 +270,7 @@ export class OpenAIChat extends LLM {
                     ...params,
                     messages: this.formatMessages(prompt),
                 }, {
-                    signal: options.signal,
-                    ...options.options,
+                    ...options,
                     adapter: fetchAdapter,
                     responseType: "stream",
                     onmessage: (event) => {
@@ -330,10 +334,7 @@ export class OpenAIChat extends LLM {
             : await this.completionWithRetry({
                 ...params,
                 messages: this.formatMessages(prompt),
-            }, {
-                signal: options.signal,
-                ...options.options,
-            });
+            }, options);
         return data.choices[0].message?.content ?? "";
     }
     /** @ignore */
@@ -353,7 +354,7 @@ export class OpenAIChat extends LLM {
             this.client = new OpenAIApi(clientConfig);
         }
         const axiosOptions = {
-            adapter: isNode() ? undefined : fetchAdapter,
+            adapter: isNode ? undefined : fetchAdapter,
             ...this.clientConfig.baseOptions,
             ...options,
         };

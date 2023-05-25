@@ -1,40 +1,26 @@
 import { AIChatMessage, ChatMessage, HumanChatMessage, SystemChatMessage, } from "../../schema/index.js";
-export function mapV1MessageToStoredMessage(message) {
-    // TODO: Remove this mapper when we deprecate the old message format.
-    if (message.data !== undefined) {
-        return message;
-    }
-    else {
-        const v1Message = message;
-        return {
-            type: v1Message.type,
-            data: {
-                content: v1Message.text,
-                role: v1Message.role,
-            },
-        };
-    }
-}
 export function mapStoredMessagesToChatMessages(messages) {
     return messages.map((message) => {
-        const storedMessage = mapV1MessageToStoredMessage(message);
-        switch (storedMessage.type) {
+        switch (message.type) {
             case "human":
-                return new HumanChatMessage(storedMessage.data.content);
+                return new HumanChatMessage(message.text);
             case "ai":
-                return new AIChatMessage(storedMessage.data.content);
+                return new AIChatMessage(message.text);
             case "system":
-                return new SystemChatMessage(storedMessage.data.content);
-            case "chat":
-                if (storedMessage.data?.additional_kwargs?.role === undefined) {
-                    throw new Error("Role must be defined for chat messages");
+                return new SystemChatMessage(message.text);
+            default: {
+                if (message.role === undefined) {
+                    throw new Error("Role must be defined for generic messages");
                 }
-                return new ChatMessage(storedMessage.data.content, storedMessage.data.additional_kwargs.role);
-            default:
-                throw new Error(`Got unexpected type: ${storedMessage.type}`);
+                return new ChatMessage(message.text, message.role);
+            }
         }
     });
 }
 export function mapChatMessagesToStoredMessages(messages) {
-    return messages.map((message) => message.toJSON());
+    return messages.map((message) => ({
+        type: message._getType(),
+        role: "role" in message ? message.role : undefined,
+        text: message.text,
+    }));
 }

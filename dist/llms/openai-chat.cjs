@@ -4,8 +4,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PromptLayerOpenAIChat = exports.OpenAIChat = void 0;
+const browser_or_node_1 = require("browser-or-node");
 const openai_1 = require("openai");
-const env_js_1 = require("../util/env.cjs");
 const axios_fetch_adapter_js_1 = __importDefault(require("../util/axios-fetch-adapter.cjs"));
 const base_js_1 = require("./base.cjs");
 /**
@@ -31,9 +31,6 @@ const base_js_1 = require("./base.cjs");
  * @augments AzureOpenAIChatInput
  */
 class OpenAIChat extends base_js_1.LLM {
-    get callKeys() {
-        return ["stop", "signal", "timeout", "options"];
-    }
     constructor(fields, configuration) {
         super(fields ?? {});
         Object.defineProperty(this, "temperature", {
@@ -258,8 +255,16 @@ class OpenAIChat extends base_js_1.LLM {
         return this.prefixMessages ? [...this.prefixMessages, message] : [message];
     }
     /** @ignore */
-    async _call(prompt, options, runManager) {
-        const { stop } = options;
+    async _call(prompt, stopOrOptions, runManager) {
+        const stop = Array.isArray(stopOrOptions)
+            ? stopOrOptions
+            : stopOrOptions?.stop;
+        const options = Array.isArray(stopOrOptions)
+            ? {}
+            : stopOrOptions?.options ?? {};
+        if (this.stop && stop) {
+            throw new Error("Stop found in input and default params");
+        }
         const params = this.invocationParams();
         params.stop = stop ?? params.stop;
         const data = params.stream
@@ -271,8 +276,7 @@ class OpenAIChat extends base_js_1.LLM {
                     ...params,
                     messages: this.formatMessages(prompt),
                 }, {
-                    signal: options.signal,
-                    ...options.options,
+                    ...options,
                     adapter: axios_fetch_adapter_js_1.default,
                     responseType: "stream",
                     onmessage: (event) => {
@@ -336,10 +340,7 @@ class OpenAIChat extends base_js_1.LLM {
             : await this.completionWithRetry({
                 ...params,
                 messages: this.formatMessages(prompt),
-            }, {
-                signal: options.signal,
-                ...options.options,
-            });
+            }, options);
         return data.choices[0].message?.content ?? "";
     }
     /** @ignore */
@@ -359,7 +360,7 @@ class OpenAIChat extends base_js_1.LLM {
             this.client = new openai_1.OpenAIApi(clientConfig);
         }
         const axiosOptions = {
-            adapter: (0, env_js_1.isNode)() ? undefined : axios_fetch_adapter_js_1.default,
+            adapter: browser_or_node_1.isNode ? undefined : axios_fetch_adapter_js_1.default,
             ...this.clientConfig.baseOptions,
             ...options,
         };

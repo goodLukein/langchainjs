@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getPromptInputKey = exports.getBufferString = exports.getInputValue = exports.BaseMemory = void 0;
+exports.getBufferString = exports.getInputValue = exports.BaseMemory = void 0;
 class BaseMemory {
 }
 exports.BaseMemory = BaseMemory;
@@ -48,11 +48,3 @@ function getBufferString(messages, humanPrefix = "Human", aiPrefix = "AI") {
     return string_messages.join("\n");
 }
 exports.getBufferString = getBufferString;
-function getPromptInputKey(inputs, memoryVariables) {
-    const promptInputKeys = Object.keys(inputs).filter((key) => !memoryVariables.includes(key) && key !== "stop");
-    if (promptInputKeys.length !== 1) {
-        throw new Error(`One input key expected, but got ${promptInputKeys.length}`);
-    }
-    return promptInputKeys[0];
-}
-exports.getPromptInputKey = getPromptInputKey;

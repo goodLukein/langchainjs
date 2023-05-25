@@ -85,6 +85,24 @@ class Milvus extends base_js_1.VectorStore {
             writable: true,
             value: void 0
         });
+        Object.defineProperty(this, "colMgr", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "idxMgr", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "dataMgr", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         Object.defineProperty(this, "indexParams", {
             enumerable: true,
             configurable: true,
@@ -131,6 +149,9 @@ class Milvus extends base_js_1.VectorStore {
             throw new Error("Milvus URL address is not provided.");
         }
         this.client = new milvus2_sdk_node_1.MilvusClient(url, args.ssl, args.username, args.password);
+        this.colMgr = this.client.collectionManager;
+        this.idxMgr = this.client.indexManager;
+        this.dataMgr = this.client.dataManager;
     }
     async addDocuments(documents) {
         const texts = documents.map(({ pageContent }) => pageContent);
@@ -181,17 +202,17 @@ class Milvus extends base_js_1.VectorStore {
             });
             insertDatas.push(data);
         }
-        const insertResp = await this.client.insert({
+        const insertResp = await this.dataMgr.insert({
             collection_name: this.collectionName,
             fields_data: insertDatas,
         });
         if (insertResp.status.error_code !== types_js_1.ErrorCode.SUCCESS) {
             throw new Error(`Error inserting data: ${JSON.stringify(insertResp)}`);
         }
-        await this.client.flushSync({ collection_names: [this.collectionName] });
+        await this.dataMgr.flushSync({ collection_names: [this.collectionName] });
     }
     async similaritySearchVectorWithScore(query, k) {
-        const hasColResp = await this.client.hasCollection({
+        const hasColResp = await this.colMgr.hasCollection({
             collection_name: this.collectionName,
         });
         if (hasColResp.status.error_code !== types_js_1.ErrorCode.SUCCESS) {
@@ -201,7 +222,7 @@ class Milvus extends base_js_1.VectorStore {
             throw new Error(`Collection not found: ${this.collectionName}, please create collection before search.`);
         }
         await this.grabCollectionFields();
-        const loadResp = await this.client.loadCollectionSync({
+        const loadResp = await this.colMgr.loadCollectionSync({
             collection_name: this.collectionName,
         });
         if (loadResp.error_code !== types_js_1.ErrorCode.SUCCESS) {
@@ -209,7 +230,7 @@ class Milvus extends base_js_1.VectorStore {
         }
         // clone this.field and remove vectorField
         const outputFields = this.fields.filter((field) => field !== this.vectorField);
-        const searchResp = await this.client.search({
+        const searchResp = await this.dataMgr.search({
             collection_name: this.collectionName,
             search_params: {
                 anns_field: this.vectorField,
@@ -248,7 +269,7 @@ class Milvus extends base_js_1.VectorStore {
         return results;
     }
     async ensureCollection(vectors, documents) {
-        const hasColResp = await this.client.hasCollection({
+        const hasColResp = await this.colMgr.hasCollection({
             collection_name: this.collectionName,
         });
         if (hasColResp.status.error_code !== types_js_1.ErrorCode.SUCCESS) {
@@ -293,7 +314,7 @@ class Milvus extends base_js_1.VectorStore {
                 this.fields.push(field.name);
             }
         });
-        const createRes = await this.client.createCollection({
+        const createRes = await this.colMgr.createCollection({
             collection_name: this.collectionName,
             fields: fieldList,
         });
@@ -301,7 +322,7 @@ class Milvus extends base_js_1.VectorStore {
             console.log(createRes);
             throw new Error(`Failed to create collection: ${createRes}`);
         }
-        await this.client.createIndex({
+        await this.idxMgr.createIndex({
             collection_name: this.collectionName,
             field_name: this.vectorField,
             extra_params: this.indexCreateParams,
@@ -317,7 +338,7 @@ class Milvus extends base_js_1.VectorStore {
             this.fields.length > 0) {
             return;
         }
-        const desc = await this.client.describeCollection({
+        const desc = await this.colMgr.describeCollection({
             collection_name: this.collectionName,
         });
         desc.schema.fields.forEach((field) => {

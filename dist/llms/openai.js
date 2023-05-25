@@ -1,5 +1,5 @@
+import { isNode } from "browser-or-node";
 import { Configuration, OpenAIApi, } from "openai";
-import { isNode } from "../util/env.js";
 import fetchAdapter from "../util/axios-fetch-adapter.js";
 import { chunkArray } from "../util/chunk.js";
 import { BaseLLM } from "./base.js";
@@ -24,9 +24,6 @@ import { OpenAIChat } from "./openai-chat.js";
  * if not explicitly available on this class.
  */
 export class OpenAI extends BaseLLM {
-    get callKeys() {
-        return ["stop", "signal", "timeout", "options"];
-    }
     constructor(fields, configuration) {
         if (fields?.modelName?.startsWith("gpt-3.5-turbo") ||
             fields?.modelName?.startsWith("gpt-4") ||
@@ -261,8 +258,8 @@ export class OpenAI extends BaseLLM {
     /**
      * Call out to OpenAI's endpoint with k unique prompts
      *
-     * @param [prompts] - The prompts to pass into the model.
-     * @param [options] - Optional list of stop words to use when generating.
+     * @param prompts - The prompts to pass into the model.
+     * @param [stop] - Optional list of stop words to use when generating.
      * @param [runManager] - Optional callback manager to use when generating.
      *
      * @returns The full LLM output.
@@ -274,8 +271,13 @@ export class OpenAI extends BaseLLM {
      * const response = await openai.generate(["Tell me a joke."]);
      * ```
      */
-    async _generate(prompts, options, runManager) {
-        const { stop } = options;
+    async _generate(prompts, stopOrOptions, runManager) {
+        const stop = Array.isArray(stopOrOptions)
+            ? stopOrOptions
+            : stopOrOptions?.stop;
+        const options = Array.isArray(stopOrOptions)
+            ? {}
+            : stopOrOptions?.options ?? {};
         const subPrompts = chunkArray(prompts, this.batchSize);
         const choices = [];
         const tokenUsage = {};
@@ -305,8 +307,7 @@ export class OpenAI extends BaseLLM {
                         ...params,
                         prompt: subPrompts[i],
                     }, {
-                        signal: options.signal,
-                        ...options.options,
+                        ...options,
                         adapter: fetchAdapter,
                         responseType: "stream",
                         onmessage: (event) => {
@@ -367,10 +368,7 @@ export class OpenAI extends BaseLLM {
                 : await this.completionWithRetry({
                     ...params,
                     prompt: subPrompts[i],
-                }, {
-                    signal: options.signal,
-                    ...options.options,
-                });
+                }, options);
             choices.push(...data.choices);
             const { completion_tokens: completionTokens, prompt_tokens: promptTokens, total_tokens: totalTokens, } = data.usage ?? {};
             if (completionTokens) {
@@ -413,7 +411,7 @@ export class OpenAI extends BaseLLM {
             this.client = new OpenAIApi(clientConfig);
         }
         const axiosOptions = {
-            adapter: isNode() ? undefined : fetchAdapter,
+            adapter: isNode ? undefined : fetchAdapter,
             ...this.clientConfig.baseOptions,
             ...options,
         };

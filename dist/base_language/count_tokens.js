@@ -1,5 +1,4 @@
-import { encodingForModel } from "../util/tiktoken.js";
-// https://www.npmjs.com/package/js-tiktoken
+// https://www.npmjs.com/package/@dqbd/tiktoken
 export const getModelNameForTiktoken = (modelName) => {
     if (modelName.startsWith("gpt-3.5-turbo-")) {
         return "gpt-3.5-turbo";
@@ -44,14 +43,30 @@ export const getModelContextSize = (modelName) => {
             return 4097;
     }
 };
+export const importTiktoken = async () => {
+    try {
+        const { encoding_for_model } = await import("@dqbd/tiktoken");
+        return { encoding_for_model };
+    }
+    catch (error) {
+        console.log(error);
+        return { encoding_for_model: null };
+    }
+};
 export const calculateMaxTokens = async ({ prompt, modelName, }) => {
+    const { encoding_for_model } = await importTiktoken();
     // fallback to approximate calculation if tiktoken is not available
     let numTokens = Math.ceil(prompt.length / 4);
     try {
-        numTokens = (await encodingForModel(modelName)).encode(prompt).length;
+        if (encoding_for_model) {
+            const encoding = encoding_for_model(getModelNameForTiktoken(modelName));
+            const tokenized = encoding.encode(prompt);
+            numTokens = tokenized.length;
+            encoding.free();
+        }
     }
     catch (error) {
-        console.warn("Failed to calculate number of tokens, falling back to approximate count");
+        console.warn("Failed to calculate number of tokens with tiktoken, falling back to approximate count", error);
     }
     const maxTokens = getModelContextSize(modelName);
     return maxTokens - numTokens;

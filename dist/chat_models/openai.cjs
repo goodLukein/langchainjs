@@ -4,8 +4,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatOpenAI = void 0;
+const browser_or_node_1 = require("browser-or-node");
 const openai_1 = require("openai");
-const env_js_1 = require("../util/env.cjs");
 const axios_fetch_adapter_js_1 = __importDefault(require("../util/axios-fetch-adapter.cjs"));
 const base_js_1 = require("./base.cjs");
 const index_js_1 = require("../schema/index.cjs");
@@ -53,9 +53,6 @@ function openAIResponseToChatMessage(role, text) {
  * if not explicitly available on this class.
  */
 class ChatOpenAI extends base_js_1.BaseChatModel {
-    get callKeys() {
-        return ["stop", "signal", "timeout", "options"];
-    }
     constructor(fields, configuration) {
         super(fields ?? {});
         Object.defineProperty(this, "temperature", {
@@ -262,13 +259,19 @@ class ChatOpenAI extends base_js_1.BaseChatModel {
         return this._identifyingParams();
     }
     /** @ignore */
-    async _generate(messages, options, runManager) {
+    async _generate(messages, stopOrOptions, runManager) {
+        const stop = Array.isArray(stopOrOptions)
+            ? stopOrOptions
+            : stopOrOptions?.stop;
+        const options = Array.isArray(stopOrOptions)
+            ? {}
+            : stopOrOptions?.options ?? {};
         const tokenUsage = {};
-        if (this.stop && options?.stop) {
+        if (this.stop && stop) {
             throw new Error("Stop found in input and default params");
         }
         const params = this.invocationParams();
-        params.stop = options?.stop ?? params.stop;
+        params.stop = stop ?? params.stop;
         const messagesMapped = messages.map((message) => ({
             role: messageTypeToOpenAIRole(message._getType()),
             content: message.text,
@@ -283,8 +286,7 @@ class ChatOpenAI extends base_js_1.BaseChatModel {
                     ...params,
                     messages: messagesMapped,
                 }, {
-                    signal: options?.signal,
-                    ...options?.options,
+                    ...options,
                     adapter: axios_fetch_adapter_js_1.default,
                     responseType: "stream",
                     onmessage: (event) => {
@@ -350,10 +352,7 @@ class ChatOpenAI extends base_js_1.BaseChatModel {
             : await this.completionWithRetry({
                 ...params,
                 messages: messagesMapped,
-            }, {
-                signal: options?.signal,
-                ...options?.options,
-            });
+            }, options);
         const { completion_tokens: completionTokens, prompt_tokens: promptTokens, total_tokens: totalTokens, } = data.usage ?? {};
         if (completionTokens) {
             tokenUsage.completionTokens =
@@ -394,15 +393,10 @@ class ChatOpenAI extends base_js_1.BaseChatModel {
         }
         const countPerMessage = await Promise.all(messages.map(async (message) => {
             const textCount = await this.getNumTokens(message.text);
-            const roleCount = await this.getNumTokens(messageTypeToOpenAIRole(message._getType()));
-            const nameCount = message.name !== undefined
-                ? tokensPerName + (await this.getNumTokens(message.name))
-                : 0;
-            const count = textCount + tokensPerMessage + roleCount + nameCount;
+            const count = textCount + tokensPerMessage + (message.name ? tokensPerName : 0);
             totalCount += count;
             return count;
         }));
-        totalCount += 3; // every reply is primed with <|start|>assistant<|message|>
         return { totalCount, countPerMessage };
     }
     /** @ignore */
@@ -422,7 +416,7 @@ class ChatOpenAI extends base_js_1.BaseChatModel {
             this.client = new openai_1.OpenAIApi(clientConfig);
         }
         const axiosOptions = {
-            adapter: (0, env_js_1.isNode)() ? undefined : axios_fetch_adapter_js_1.default,
+            adapter: browser_or_node_1.isNode ? undefined : axios_fetch_adapter_js_1.default,
             ...this.clientConfig.baseOptions,
             ...options,
         };

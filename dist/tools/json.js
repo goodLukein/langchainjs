@@ -21,9 +21,7 @@ export class JsonSpec {
         const pointer = jsonpointer.compile(input);
         const res = pointer.get(this.obj);
         if (typeof res === "object" && !Array.isArray(res) && res !== null) {
-            return Object.keys(res)
-                .map((i) => i.replaceAll("~", "~0").replaceAll("/", "~1"))
-                .join(", ");
+            return Object.keys(res).join(", ");
         }
         throw new Error(`Value at ${input} is not a dictionary, get the value directly instead.`);
     }

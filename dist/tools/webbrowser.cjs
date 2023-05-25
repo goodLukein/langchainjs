@@ -28,12 +28,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebBrowser = exports.getText = exports.parseInputs = void 0;
 const axios_1 = __importDefault(require("axios"));
+const browser_or_node_1 = require("browser-or-node");
 const cheerio = __importStar(require("cheerio"));
-const env_js_1 = require("../util/env.cjs");
 const text_splitter_js_1 = require("../text_splitter.cjs");
 const memory_js_1 = require("../vectorstores/memory.cjs");
+const base_js_1 = require("../prompts/base.cjs");
 const document_js_1 = require("../document.cjs");
-const base_js_1 = require("./base.cjs");
+const base_js_2 = require("./base.cjs");
 const axios_fetch_adapter_js_1 = __importDefault(require("../util/axios-fetch-adapter.cjs"));
 const parseInputs = (inputs) => {
     const [baseUrl, task] = inputs.split(",").map((input) => {
@@ -133,7 +134,7 @@ const DEFAULT_HEADERS = {
     "Upgrade-Insecure-Requests": "1",
     "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/111.0",
 };
-class WebBrowser extends base_js_1.Tool {
+class WebBrowser extends base_js_2.Tool {
     constructor({ model, headers, embeddings, verbose, callbacks, callbackManager, axiosConfig, }) {
         super(verbose, callbacks ?? callbackManager);
         Object.defineProperty(this, "model", {
@@ -177,7 +178,7 @@ class WebBrowser extends base_js_1.Tool {
         this.headers = headers || DEFAULT_HEADERS;
         this.axiosConfig = {
             withCredentials: true,
-            adapter: (0, env_js_1.isNode)() ? undefined : axios_fetch_adapter_js_1.default,
+            adapter: browser_or_node_1.isNode ? undefined : axios_fetch_adapter_js_1.default,
             ...axiosConfig,
         };
     }
@@ -217,7 +218,8 @@ class WebBrowser extends base_js_1.Tool {
             context = results.map((res) => res.pageContent).join("\n");
         }
         const input = `Text:${context}\n\nI need ${doSummary ? "a summary" : task} from the above text, also provide up to 5 markdown links from within that would be of interest (always including URL and text). Links should be provided, if present, in markdown syntax as a list under the heading "Relevant Links:".`;
-        return this.model.predict(input, undefined, runManager?.getChild());
+        const res = await this.model.generatePrompt([new base_js_1.StringPromptValue(input)], undefined, runManager?.getChild());
+        return res.generations[0][0].text;
     }
 }
 exports.WebBrowser = WebBrowser;

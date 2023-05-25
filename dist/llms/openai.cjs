@@ -4,8 +4,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PromptLayerOpenAIChat = exports.OpenAIChat = exports.PromptLayerOpenAI = exports.OpenAI = void 0;
+const browser_or_node_1 = require("browser-or-node");
 const openai_1 = require("openai");
-const env_js_1 = require("../util/env.cjs");
 const axios_fetch_adapter_js_1 = __importDefault(require("../util/axios-fetch-adapter.cjs"));
 const chunk_js_1 = require("../util/chunk.cjs");
 const base_js_1 = require("./base.cjs");
@@ -30,9 +30,6 @@ const openai_chat_js_1 = require("./openai-chat.cjs");
  * if not explicitly available on this class.
  */
 class OpenAI extends base_js_1.BaseLLM {
-    get callKeys() {
-        return ["stop", "signal", "timeout", "options"];
-    }
     constructor(fields, configuration) {
         if (fields?.modelName?.startsWith("gpt-3.5-turbo") ||
             fields?.modelName?.startsWith("gpt-4") ||
@@ -267,8 +264,8 @@ class OpenAI extends base_js_1.BaseLLM {
     /**
      * Call out to OpenAI's endpoint with k unique prompts
      *
-     * @param [prompts] - The prompts to pass into the model.
-     * @param [options] - Optional list of stop words to use when generating.
+     * @param prompts - The prompts to pass into the model.
+     * @param [stop] - Optional list of stop words to use when generating.
      * @param [runManager] - Optional callback manager to use when generating.
      *
      * @returns The full LLM output.
@@ -280,8 +277,13 @@ class OpenAI extends base_js_1.BaseLLM {
      * const response = await openai.generate(["Tell me a joke."]);
      * ```
      */
-    async _generate(prompts, options, runManager) {
-        const { stop } = options;
+    async _generate(prompts, stopOrOptions, runManager) {
+        const stop = Array.isArray(stopOrOptions)
+            ? stopOrOptions
+            : stopOrOptions?.stop;
+        const options = Array.isArray(stopOrOptions)
+            ? {}
+            : stopOrOptions?.options ?? {};
         const subPrompts = (0, chunk_js_1.chunkArray)(prompts, this.batchSize);
         const choices = [];
         const tokenUsage = {};
@@ -311,8 +313,7 @@ class OpenAI extends base_js_1.BaseLLM {
                         ...params,
                         prompt: subPrompts[i],
                     }, {
-                        signal: options.signal,
-                        ...options.options,
+                        ...options,
                         adapter: axios_fetch_adapter_js_1.default,
                         responseType: "stream",
                         onmessage: (event) => {
@@ -373,10 +374,7 @@ class OpenAI extends base_js_1.BaseLLM {
                 : await this.completionWithRetry({
                     ...params,
                     prompt: subPrompts[i],
-                }, {
-                    signal: options.signal,
-                    ...options.options,
-                });
+                }, options);
             choices.push(...data.choices);
             const { completion_tokens: completionTokens, prompt_tokens: promptTokens, total_tokens: totalTokens, } = data.usage ?? {};
             if (completionTokens) {
@@ -419,7 +417,7 @@ class OpenAI extends base_js_1.BaseLLM {
             this.client = new openai_1.OpenAIApi(clientConfig);
         }
         const axiosOptions = {
-            adapter: (0, env_js_1.isNode)() ? undefined : axios_fetch_adapter_js_1.default,
+            adapter: browser_or_node_1.isNode ? undefined : axios_fetch_adapter_js_1.default,
             ...this.clientConfig.baseOptions,
             ...options,
         };

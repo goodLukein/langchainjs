@@ -29,6 +29,9 @@ export declare class Milvus extends VectorStore {
     textField: string;
     fields: string[];
     client: MilvusClient;
+    colMgr: MilvusClient["collectionManager"];
+    idxMgr: MilvusClient["indexManager"];
+    dataMgr: MilvusClient["dataManager"];
     indexParams: Record<IndexType, IndexParam>;
     indexCreateParams: {
         index_type: string;

@@ -5,7 +5,6 @@ const index_js_1 = require("../cache/index.cjs");
 const index_js_2 = require("../schema/index.cjs");
 const index_js_3 = require("../base_language/index.cjs");
 const manager_js_1 = require("../callbacks/manager.cjs");
-const base_js_1 = require("../memory/base.cjs");
 /**
  * LLM Wrapper. Provides an {@link call} (an {@link generate}) function that takes in a prompt (or prompts) and returns a string.
  */
@@ -28,25 +27,17 @@ class BaseLLM extends index_js_3.BaseLanguageModel {
             this.cache = undefined;
         }
     }
-    async generatePrompt(promptValues, options, callbacks) {
+    async generatePrompt(promptValues, stop, callbacks) {
         const prompts = promptValues.map((promptValue) => promptValue.toString());
-        return this.generate(prompts, options, callbacks);
-    }
-    /**
-     * Get the parameters used to invoke the model
-     */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    invocationParams() {
-        return {};
+        return this.generate(prompts, stop, callbacks);
     }
     /** @ignore */
-    async _generateUncached(prompts, options, callbacks) {
+    async _generateUncached(prompts, stop, callbacks) {
         const callbackManager_ = await manager_js_1.CallbackManager.configure(callbacks, this.callbacks, { verbose: this.verbose });
-        const invocationParams = { invocation_params: this?.invocationParams() };
-        const runManager = await callbackManager_?.handleLLMStart({ name: this._llmType() }, prompts, undefined, undefined, invocationParams);
+        const runManager = await callbackManager_?.handleLLMStart({ name: this._llmType() }, prompts);
         let output;
         try {
-            output = await this._generate(prompts, options, runManager);
+            output = await this._generate(prompts, stop, runManager);
         }
         catch (err) {
             await runManager?.handleLLMError(err);
@@ -65,29 +56,16 @@ class BaseLLM extends index_js_3.BaseLanguageModel {
     /**
      * Run the LLM on the given propmts an input, handling caching.
      */
-    async generate(prompts, options, callbacks) {
+    async generate(prompts, stop, callbacks) {
         if (!Array.isArray(prompts)) {
             throw new Error("Argument 'prompts' is expected to be a string[]");
         }
-        let parsedOptions;
-        if (Array.isArray(options)) {
-            parsedOptions = { stop: options };
-        }
-        else if (options?.timeout && !options.signal) {
-            parsedOptions = {
-                ...options,
-                signal: AbortSignal.timeout(options.timeout),
-            };
-        }
-        else {
-            parsedOptions = options ?? {};
-        }
         if (!this.cache) {
-            return this._generateUncached(prompts, parsedOptions, callbacks);
+            return this._generateUncached(prompts, stop, callbacks);
         }
         const { cache } = this;
         const params = this.serialize();
-        params.stop = parsedOptions.stop ?? params.stop;
+        params.stop = stop;
         const llmStringKey = `${Object.entries(params).sort()}`;
         const missingPromptIndices = [];
         const generations = await Promise.all(prompts.map(async (prompt, index) => {
@@ -99,7 +77,7 @@ class BaseLLM extends index_js_3.BaseLanguageModel {
         }));
         let llmOutput = {};
         if (missingPromptIndices.length > 0) {
-            const results = await this._generateUncached(missingPromptIndices.map((i) => prompts[i]), parsedOptions, callbacks);
+            const results = await this._generateUncached(missingPromptIndices.map((i) => prompts[i]), stop, callbacks);
             await Promise.all(results.generations.map(async (generation, index) => {
                 const promptIndex = missingPromptIndices[index];
                 generations[promptIndex] = generation;
@@ -112,17 +90,9 @@ class BaseLLM extends index_js_3.BaseLanguageModel {
     /**
      * Convenience wrapper for {@link generate} that takes in a single string prompt and returns a single string output.
      */
-    async call(prompt, options, callbacks) {
-        const { generations } = await this.generate([prompt], options ?? {}, callbacks);
+    async call(prompt, stop, callbacks) {
+        const { generations } = await this.generate([prompt], stop, callbacks);
         return generations[0][0].text;
-    }
-    async predict(text, options, callbacks) {
-        return this.call(text, options, callbacks);
-    }
-    async predictMessages(messages, options, callbacks) {
-        const text = (0, base_js_1.getBufferString)(messages);
-        const prediction = await this.call(text, options, callbacks);
-        return new index_js_2.AIChatMessage(prediction);
     }
     /**
      * Get the identifying parameters of the LLM.
@@ -170,8 +140,12 @@ exports.BaseLLM = BaseLLM;
  * @augments BaseLLM
  */
 class LLM extends BaseLLM {
-    async _generate(prompts, options, runManager) {
-        const generations = await Promise.all(prompts.map((prompt) => this._call(prompt, options, runManager).then((text) => [{ text }])));
+    async _generate(prompts, stop, runManager) {
+        const generations = [];
+        for (let i = 0; i < prompts.length; i += 1) {
+            const text = await this._call(prompts[i], stop, runManager);
+            generations.push([{ text }]);
+        }
         return { generations };
     }
 }

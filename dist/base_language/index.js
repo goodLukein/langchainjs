@@ -1,6 +1,5 @@
 import { AsyncCaller } from "../util/async_caller.js";
-import { getModelNameForTiktoken } from "./count_tokens.js";
-import { encodingForModel } from "../util/tiktoken.js";
+import { getModelNameForTiktoken, importTiktoken } from "./count_tokens.js";
 const getVerbosity = () => false;
 /**
  * Base class for language models, chains, tools.
@@ -30,12 +29,6 @@ export class BaseLangChain {
  * Base class for language models.
  */
 export class BaseLanguageModel extends BaseLangChain {
-    /**
-     * Keys that the language model accepts as call options.
-     */
-    get callKeys() {
-        return ["stop", "timeout", "signal"];
-    }
     constructor(params) {
         super({
             verbose: params.verbose,
@@ -57,23 +50,38 @@ export class BaseLanguageModel extends BaseLangChain {
             writable: true,
             value: void 0
         });
+        Object.defineProperty(this, "_registry", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         this.caller = new AsyncCaller(params ?? {});
     }
     async getNumTokens(text) {
         // fallback to approximate calculation if tiktoken is not available
         let numTokens = Math.ceil(text.length / 4);
-        if (!this._encoding) {
-            try {
-                this._encoding = await encodingForModel("modelName" in this
-                    ? getModelNameForTiktoken(this.modelName)
-                    : "gpt2");
+        try {
+            if (!this._encoding) {
+                const { encoding_for_model } = await importTiktoken();
+                // modelName only exists in openai subclasses, but tiktoken only supports
+                // openai tokenisers anyway, so for other subclasses we default to gpt2
+                if (encoding_for_model) {
+                    this._encoding = encoding_for_model("modelName" in this
+                        ? getModelNameForTiktoken(this.modelName)
+                        : "gpt2");
+                    // We need to register a finalizer to free the tokenizer when the
+                    // model is garbage collected.
+                    this._registry = new FinalizationRegistry((t) => t.free());
+                    this._registry.register(this, this._encoding);
+                }
             }
-            catch (error) {
-                console.warn("Failed to calculate number of tokens, falling back to approximate count", error);
+            if (this._encoding) {
+                numTokens = this._encoding.encode(text).length;
             }
         }
-        if (this._encoding) {
-            numTokens = this._encoding.encode(text).length;
+        catch (error) {
+            console.warn("Failed to calculate number of tokens with tiktoken, falling back to approximate count", error);
         }
         return numTokens;
     }

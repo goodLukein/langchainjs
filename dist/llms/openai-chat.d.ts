@@ -28,7 +28,6 @@ export { OpenAICallOptions, OpenAIChatInput, AzureOpenAIInput };
  */
 export declare class OpenAIChat extends LLM implements OpenAIChatInput, AzureOpenAIInput {
     CallOptions: OpenAICallOptions;
-    get callKeys(): (keyof OpenAICallOptions)[];
     temperature: number;
     topP: number;
     frequencyPenalty: number;
@@ -105,7 +104,7 @@ export declare class OpenAIChat extends LLM implements OpenAIChatInput, AzureOpe
     };
     private formatMessages;
     /** @ignore */
-    _call(prompt: string, options: this["ParsedCallOptions"], runManager?: CallbackManagerForLLMRun): Promise<string>;
+    _call(prompt: string, stopOrOptions?: string[] | this["CallOptions"], runManager?: CallbackManagerForLLMRun): Promise<string>;
     /** @ignore */
     completionWithRetry(request: CreateChatCompletionRequest, options?: StreamingAxiosConfiguration): Promise<CreateChatCompletionResponse>;
     _llmType(): string;

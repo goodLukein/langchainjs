@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MarkdownTextSplitter = exports.TokenTextSplitter = exports.RecursiveCharacterTextSplitter = exports.CharacterTextSplitter = exports.TextSplitter = void 0;
 const document_js_1 = require("./document.cjs");
-const tiktoken_js_1 = require("./util/tiktoken.cjs");
 class TextSplitter {
     constructor(fields) {
         Object.defineProperty(this, "chunkSize", {
@@ -25,17 +24,14 @@ class TextSplitter {
     }
     async createDocuments(texts, 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    metadatas = [], chunkHeaderOptions = {}) {
-        // if no metadata is provided, we create an empty one for each text
+    metadatas = []) {
         const _metadatas = metadatas.length > 0 ? metadatas : new Array(texts.length).fill({});
-        const { chunkHeader = "", chunkOverlapHeader = "(cont'd) ", appendChunkOverlapHeader = false, } = chunkHeaderOptions;
         const documents = new Array();
         for (let i = 0; i < texts.length; i += 1) {
             const text = texts[i];
             let lineCounterIndex = 1;
             let prevChunk = null;
             for (const chunk of await this.splitText(text)) {
-                let pageContent = chunkHeader;
                 // we need to count the \n that are in the text before getting removed by the splitting
                 let numberOfIntermediateNewLines = 0;
                 if (prevChunk) {
@@ -43,9 +39,6 @@ class TextSplitter {
                     const indexEndPrevChunk = text.indexOf(prevChunk) + prevChunk.length;
                     const removedNewlinesFromSplittingText = text.slice(indexEndPrevChunk, indexChunk);
                     numberOfIntermediateNewLines = (removedNewlinesFromSplittingText.match(/\n/g) || []).length;
-                    if (appendChunkOverlapHeader) {
-                        pageContent += chunkOverlapHeader;
-                    }
                 }
                 lineCounterIndex += numberOfIntermediateNewLines;
                 const newLinesCount = (chunk.match(/\n/g) || []).length;
@@ -60,9 +53,8 @@ class TextSplitter {
                     ..._metadatas[i],
                     loc,
                 };
-                pageContent += chunk;
                 documents.push(new document_js_1.Document({
-                    pageContent,
+                    pageContent: chunk,
                     metadata: metadataWithLinesNumber,
                 }));
                 lineCounterIndex += newLinesCount;
@@ -71,11 +63,11 @@ class TextSplitter {
         }
         return documents;
     }
-    async splitDocuments(documents, chunkHeaderOptions = {}) {
+    async splitDocuments(documents) {
         const selectedDocuments = documents.filter((doc) => doc.pageContent !== undefined);
         const texts = selectedDocuments.map((doc) => doc.pageContent);
         const metadatas = selectedDocuments.map((doc) => doc.metadata);
-        return this.createDocuments(texts, metadatas, chunkHeaderOptions);
+        return this.createDocuments(texts, metadatas);
     }
     joinDocs(docs, separator) {
         const text = docs.join(separator).trim();
@@ -87,8 +79,7 @@ class TextSplitter {
         let total = 0;
         for (const d of splits) {
             const _len = d.length;
-            if (total + _len + (currentDoc.length > 0 ? separator.length : 0) >
-                this.chunkSize) {
+            if (total + _len >= this.chunkSize) {
                 if (total > this.chunkSize) {
                     console.warn(`Created a chunk of size ${total}, +
 which is longer than the specified ${this.chunkSize}`);
@@ -230,26 +221,47 @@ class TokenTextSplitter extends TextSplitter {
             writable: true,
             value: void 0
         });
+        Object.defineProperty(this, "registry", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         this.encodingName = fields?.encodingName ?? "gpt2";
         this.allowedSpecial = fields?.allowedSpecial ?? [];
         this.disallowedSpecial = fields?.disallowedSpecial ?? "all";
     }
     async splitText(text) {
         if (!this.tokenizer) {
-            this.tokenizer = await (0, tiktoken_js_1.getEncoding)(this.encodingName);
+            const tiktoken = await TokenTextSplitter.imports();
+            this.tokenizer = tiktoken.get_encoding(this.encodingName);
+            // We need to register a finalizer to free the tokenizer when the
+            // splitter is garbage collected.
+            this.registry = new FinalizationRegistry((t) => t.free());
+            this.registry.register(this, this.tokenizer);
         }
         const splits = [];
         const input_ids = this.tokenizer.encode(text, this.allowedSpecial, this.disallowedSpecial);
         let start_idx = 0;
         let cur_idx = Math.min(start_idx + this.chunkSize, input_ids.length);
         let chunk_ids = input_ids.slice(start_idx, cur_idx);
+        const decoder = new TextDecoder();
         while (start_idx < input_ids.length) {
-            splits.push(this.tokenizer.decode(chunk_ids));
+            splits.push(decoder.decode(this.tokenizer.decode(chunk_ids)));
             start_idx += this.chunkSize - this.chunkOverlap;
             cur_idx = Math.min(start_idx + this.chunkSize, input_ids.length);
             chunk_ids = input_ids.slice(start_idx, cur_idx);
         }
         return splits;
+    }
+    static async imports() {
+        try {
+            return await import("@dqbd/tiktoken");
+        }
+        catch (err) {
+            console.error(err);
+            throw new Error("Please install @dqbd/tiktoken as a dependency with, e.g. `npm install -S @dqbd/tiktoken`");
+        }
     }
 }
 exports.TokenTextSplitter = TokenTextSplitter;

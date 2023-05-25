@@ -11,8 +11,6 @@ export interface ChatCreatePromptArgs {
     suffix?: string;
     /** String to put before the list of tools. */
     prefix?: string;
-    /** String to use directly as the human message template. */
-    humanMessageTemplate?: string;
     /** List of input variables the final prompt will expect. */
     inputVariables?: string[];
 }
@@ -22,7 +20,6 @@ export type ChatAgentInput = Optional<AgentInput, "outputParser">;
  * @augments Agent
  */
 export declare class ChatAgent extends Agent {
-    ToolType: Tool;
     constructor(input: ChatAgentInput);
     _agentType(): "chat-zero-shot-react-description";
     observationPrefix(): string;
@@ -38,7 +35,6 @@ export declare class ChatAgent extends Agent {
      * @param args - Arguments to create the prompt with.
      * @param args.suffix - String to put after the list of tools.
      * @param args.prefix - String to put before the list of tools.
-     * @param args.humanMessageTemplate - String to use directly as the human message template
      */
     static createPrompt(tools: Tool[], args?: ChatCreatePromptArgs): ChatPromptTemplate;
     static fromLLMAndTools(llm: BaseLanguageModel, tools: Tool[], args?: ChatCreatePromptArgs & AgentArgs): ChatAgent;
