@@ -44,7 +44,7 @@ Assistant can ask the user to use tools to look up information that may be helpf
 
 USER'S INPUT
 --------------------
-Here is the user's input (remember to respond with a markdown code snippet of a json blob with a single action, and NOTHING else):
+Here is the user's input (remember to respond with a markdown code snippet of a json blob with a single action, and NOTHING else, and remember to not break character):
 
 {{{{input}}}}`;
 exports.TEMPLATE_TOOL_RESPONSE = `TOOL RESPONSE:
