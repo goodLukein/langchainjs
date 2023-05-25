@@ -21,7 +21,7 @@ Markdown code snippet formatted in the following schema:
 \`\`\`json
 {{{{
     "action": string \\ The action to take. Must be one of {tool_names}
-    "action_input": string \\ The input to the action
+    "action_input": string \\ The input to the action. This is not to be written in character and is purely to express the desired action.
 }}}}
 \`\`\`
 
