@@ -9,7 +9,19 @@ import { ConversationChain } from "../../chains/conversation.js";
 import { zipEntries } from "./utils.js";
 import { RouterOutputParser } from "../../output_parsers/router.js";
 export class MultiPromptChain extends MultiRouteChain {
+    /**
+     * @deprecated Use `fromLLMAndPrompts` instead
+     */
     static fromPrompts(llm, promptNames, promptDescriptions, promptTemplates, defaultChain, options) {
+        return MultiPromptChain.fromLLMAndPrompts(llm, {
+            promptNames,
+            promptDescriptions,
+            promptTemplates,
+            defaultChain,
+            multiRouteChainOpts: options,
+        });
+    }
+    static fromLLMAndPrompts(llm, { promptNames, promptDescriptions, promptTemplates, defaultChain, llmChainOpts, conversationChainOpts, multiRouteChainOpts, }) {
         const destinations = zipEntries(promptNames, promptDescriptions).map(([name, desc]) => `${name}: ${desc}`);
         const structuredOutputParserSchema = z.object({
             destination: z
@@ -50,20 +62,22 @@ export class MultiPromptChain extends MultiRouteChain {
                 throw new Error("Invalid prompt template");
             }
             acc[name] = new LLMChain({
+                ...llmChainOpts,
                 llm,
                 prompt: myPrompt,
             });
             return acc;
         }, {});
         const convChain = new ConversationChain({
+            ...conversationChainOpts,
             llm,
             outputKey: "text",
         });
         return new MultiPromptChain({
+            ...multiRouteChainOpts,
             routerChain,
             destinationChains,
             defaultChain: defaultChain ?? convChain,
-            ...options,
         });
     }
     _chainType() {

@@ -1,7 +1,8 @@
-import { isNode } from "browser-or-node";
 import { Configuration, OpenAIApi, } from "openai";
+import { isNode, getEnvironmentVariable } from "../util/env.js";
 import fetchAdapter from "../util/axios-fetch-adapter.js";
 import { LLM } from "./base.js";
+import { promptLayerTrackRequest } from "../util/prompt-layer.js";
 /**
  * Wrapper around OpenAI large language models that use the Chat endpoint.
  *
@@ -25,6 +26,9 @@ import { LLM } from "./base.js";
  * @augments AzureOpenAIChatInput
  */
 export class OpenAIChat extends LLM {
+    get callKeys() {
+        return ["stop", "signal", "timeout", "options"];
+    }
     constructor(fields, configuration) {
         super(fields ?? {});
         Object.defineProperty(this, "temperature", {
@@ -141,34 +145,18 @@ export class OpenAIChat extends LLM {
             writable: true,
             value: void 0
         });
-        const apiKey = fields?.openAIApiKey ??
-            (typeof process !== "undefined"
-                ? // eslint-disable-next-line no-process-env
-                    process.env?.OPENAI_API_KEY
-                : undefined);
+        const apiKey = fields?.openAIApiKey ?? getEnvironmentVariable("OPENAI_API_KEY");
         const azureApiKey = fields?.azureOpenAIApiKey ??
-            (typeof process !== "undefined"
-                ? // eslint-disable-next-line no-process-env
-                    process.env?.AZURE_OPENAI_API_KEY
-                : undefined);
+            getEnvironmentVariable("AZURE_OPENAI_API_KEY");
         if (!azureApiKey && !apiKey) {
             throw new Error("(Azure) OpenAI API key not found");
         }
         const azureApiInstanceName = fields?.azureOpenAIApiInstanceName ??
-            (typeof process !== "undefined"
-                ? // eslint-disable-next-line no-process-env
-                    process.env?.AZURE_OPENAI_API_INSTANCE_NAME
-                : undefined);
+            getEnvironmentVariable("AZURE_OPENAI_API_INSTANCE_NAME");
         const azureApiDeploymentName = fields?.azureOpenAIApiDeploymentName ??
-            (typeof process !== "undefined"
-                ? // eslint-disable-next-line no-process-env
-                    process.env?.AZURE_OPENAI_API_DEPLOYMENT_NAME
-                : undefined);
+            getEnvironmentVariable("AZURE_OPENAI_API_DEPLOYMENT_NAME");
         const azureApiVersion = fields?.azureOpenAIApiVersion ??
-            (typeof process !== "undefined"
-                ? // eslint-disable-next-line no-process-env
-                    process.env?.AZURE_OPENAI_API_VERSION
-                : undefined);
+            getEnvironmentVariable("AZURE_OPENAI_API_VERSION");
         this.modelName = fields?.modelName ?? this.modelName;
         this.prefixMessages = fields?.prefixMessages ?? this.prefixMessages;
         this.modelKwargs = fields?.modelKwargs ?? {};
@@ -249,16 +237,8 @@ export class OpenAIChat extends LLM {
         return this.prefixMessages ? [...this.prefixMessages, message] : [message];
     }
     /** @ignore */
-    async _call(prompt, stopOrOptions, runManager) {
-        const stop = Array.isArray(stopOrOptions)
-            ? stopOrOptions
-            : stopOrOptions?.stop;
-        const options = Array.isArray(stopOrOptions)
-            ? {}
-            : stopOrOptions?.options ?? {};
-        if (this.stop && stop) {
-            throw new Error("Stop found in input and default params");
-        }
+    async _call(prompt, options, runManager) {
+        const { stop } = options;
         const params = this.invocationParams();
         params.stop = stop ?? params.stop;
         const data = params.stream
@@ -270,7 +250,8 @@ export class OpenAIChat extends LLM {
                     ...params,
                     messages: this.formatMessages(prompt),
                 }, {
-                    ...options,
+                    signal: options.signal,
+                    ...options.options,
                     adapter: fetchAdapter,
                     responseType: "stream",
                     onmessage: (event) => {
@@ -334,7 +315,10 @@ export class OpenAIChat extends LLM {
             : await this.completionWithRetry({
                 ...params,
                 messages: this.formatMessages(prompt),
-            }, options);
+            }, {
+                signal: options.signal,
+                ...options.options,
+            });
         return data.choices[0].message?.content ?? "";
     }
     /** @ignore */
@@ -354,7 +338,7 @@ export class OpenAIChat extends LLM {
             this.client = new OpenAIApi(clientConfig);
         }
         const axiosOptions = {
-            adapter: isNode ? undefined : fetchAdapter,
+            adapter: isNode() ? undefined : fetchAdapter,
             ...this.clientConfig.baseOptions,
             ...options,
         };
@@ -394,13 +378,17 @@ export class PromptLayerOpenAIChat extends OpenAIChat {
             writable: true,
             value: void 0
         });
+        Object.defineProperty(this, "returnPromptLayerId", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         this.plTags = fields?.plTags ?? [];
+        this.returnPromptLayerId = fields?.returnPromptLayerId ?? false;
         this.promptLayerApiKey =
             fields?.promptLayerApiKey ??
-                (typeof process !== "undefined"
-                    ? // eslint-disable-next-line no-process-env
-                        process.env?.PROMPTLAYER_API_KEY
-                    : undefined);
+                getEnvironmentVariable("PROMPTLAYER_API_KEY");
         if (!this.promptLayerApiKey) {
             throw new Error("Missing PromptLayer API key");
         }
@@ -409,27 +397,28 @@ export class PromptLayerOpenAIChat extends OpenAIChat {
         if (request.stream) {
             return super.completionWithRetry(request, options);
         }
-        const requestStartTime = Date.now();
         const response = await super.completionWithRetry(request);
-        const requestEndTime = Date.now();
-        // https://github.com/MagnivOrg/promptlayer-js-helper
-        await this.caller.call(fetch, "https://api.promptlayer.com/track-request", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-            },
-            body: JSON.stringify({
-                function_name: "openai.ChatCompletion.create",
-                args: [],
-                kwargs: { engine: request.model, messages: request.messages },
-                tags: this.plTags ?? [],
-                request_response: response,
-                request_start_time: Math.floor(requestStartTime / 1000),
-                request_end_time: Math.floor(requestEndTime / 1000),
-                api_key: this.promptLayerApiKey,
-            }),
-        });
         return response;
+    }
+    async _generate(prompts, options, runManager) {
+        let choice;
+        const generations = await Promise.all(prompts.map(async (prompt) => {
+            const requestStartTime = Date.now();
+            const text = await this._call(prompt, options, runManager);
+            const requestEndTime = Date.now();
+            choice = [{ text }];
+            const parsedResp = {
+                text,
+            };
+            const promptLayerRespBody = await promptLayerTrackRequest(this.caller, "langchain.PromptLayerOpenAIChat", [prompt], this._identifyingParams(), this.plTags, parsedResp, requestStartTime, requestEndTime, this.promptLayerApiKey);
+            if (this.returnPromptLayerId === true &&
+                promptLayerRespBody.success === true) {
+                choice[0].generationInfo = {
+                    promptLayerRequestId: promptLayerRespBody.request_id,
+                };
+            }
+            return choice;
+        }));
+        return { generations };
     }
 }

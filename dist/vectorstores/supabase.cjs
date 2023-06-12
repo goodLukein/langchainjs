@@ -60,13 +60,24 @@ class SupabaseVectorStore extends base_js_1.VectorStore {
         if (filter && this.filter) {
             throw new Error("cannot provide both `filter` and `this.filter`");
         }
-        const _filter = filter ?? this.filter;
+        const _filter = filter ?? this.filter ?? {};
         const matchDocumentsParams = {
-            filter: _filter,
             query_embedding: query,
-            match_count: k,
         };
-        const { data: searches, error } = await this.client.rpc(this.queryName, matchDocumentsParams);
+        let filterFunction;
+        if (typeof _filter === "function") {
+            filterFunction = (rpcCall) => _filter(rpcCall).limit(k);
+        }
+        else if (typeof _filter === "object") {
+            matchDocumentsParams.filter = _filter;
+            matchDocumentsParams.match_count = k;
+            filterFunction = (rpcCall) => rpcCall;
+        }
+        else {
+            throw new Error("invalid filter type");
+        }
+        const rpcCall = this.client.rpc(this.queryName, matchDocumentsParams);
+        const { data: searches, error } = await filterFunction(rpcCall);
         if (error) {
             throw new Error(`Error searching for documents: ${error.code} ${error.message} ${error.details}`);
         }

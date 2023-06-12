@@ -10,3 +10,5 @@ export { initializeAgentExecutor, initializeAgentExecutorWithOptions, } from "./
 export { ZeroShotAgent, } from "./mrkl/index.js";
 export { ZeroShotAgentOutputParser } from "./mrkl/outputParser.js";
 export { AgentActionOutputParser, } from "./types.js";
+export { StructuredChatAgent, } from "./structured_chat/index.js";
+export { StructuredChatOutputParser, StructuredChatOutputParserWithRetries, } from "./structured_chat/outputParser.js";

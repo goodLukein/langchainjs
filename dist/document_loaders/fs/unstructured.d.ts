@@ -15,15 +15,18 @@ type Element = {
 type UnstructuredLoaderOptions = {
     apiKey?: string;
     apiUrl?: string;
+    strategy?: string;
 };
 type UnstructuredDirectoryLoaderOptions = UnstructuredLoaderOptions & {
     recursive?: boolean;
     unknown?: UnknownHandling;
+    strategy?: string;
 };
 export declare class UnstructuredLoader extends BaseDocumentLoader {
     filePath: string;
     private apiUrl;
     private apiKey?;
+    private strategy;
     constructor(filePathOrLegacyApiUrl: string, optionsOrLegacyFilePath?: UnstructuredLoaderOptions | string);
     _partition(): Promise<Element[]>;
     load(): Promise<Document[]>;

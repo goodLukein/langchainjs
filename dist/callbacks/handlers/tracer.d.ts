@@ -6,7 +6,7 @@ export interface BaseRun {
     id: string;
     name: string;
     start_time: number;
-    end_time: number;
+    end_time?: number;
     extra?: Extra;
     error?: string;
     execution_order: number;

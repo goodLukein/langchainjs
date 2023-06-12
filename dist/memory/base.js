@@ -42,3 +42,10 @@ export function getBufferString(messages, humanPrefix = "Human", aiPrefix = "AI"
     }
     return string_messages.join("\n");
 }
+export function getPromptInputKey(inputs, memoryVariables) {
+    const promptInputKeys = Object.keys(inputs).filter((key) => !memoryVariables.includes(key) && key !== "stop");
+    if (promptInputKeys.length !== 1) {
+        throw new Error(`One input key expected, but got ${promptInputKeys.length}`);
+    }
+    return promptInputKeys[0];
+}

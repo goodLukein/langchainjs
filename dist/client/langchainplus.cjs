@@ -4,37 +4,15 @@ exports.LangChainPlusClient = exports.isChain = exports.isChatModel = exports.is
 const tracer_langchain_js_1 = require("../callbacks/handlers/tracer_langchain.cjs");
 const utils_js_1 = require("../stores/message/utils.cjs");
 const async_caller_js_1 = require("../util/async_caller.cjs");
+const env_js_1 = require("../util/env.cjs");
 // utility functions
 const isLocalhost = (url) => {
     const strippedUrl = url.replace("http://", "").replace("https://", "");
     const hostname = strippedUrl.split("/")[0].split(":")[0];
-    return (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1");
-};
-const getSeededTenantId = async (apiUrl, { apiKey, callerOptions, }) => {
-    // Get the tenant ID from the seeded tenant
-    const caller = new async_caller_js_1.AsyncCaller(callerOptions ?? {});
-    const url = `${apiUrl}/tenants`;
-    let response;
-    try {
-        response = await caller.call(fetch, url, {
-            method: "GET",
-            headers: apiKey ? { "x-api-key": apiKey } : undefined,
-        });
-    }
-    catch (err) {
-        throw new Error("Unable to get seeded tenant ID. Please manually provide.");
-    }
-    if (!response.ok) {
-        throw new Error(`Failed to fetch seeded tenant ID: ${response.status} ${response.statusText}`);
-    }
-    const tenants = await response.json();
-    if (!Array.isArray(tenants)) {
-        throw new Error(`Expected tenants GET request to return an array, but got ${tenants}`);
-    }
-    if (tenants.length === 0) {
-        throw new Error("No seeded tenant found");
-    }
-    return tenants[0].id;
+    return (hostname === "localhost" ||
+        hostname === "127.0.0.1" ||
+        hostname === "::1" ||
+        hostname === "0.0.0.0");
 };
 const stringifyError = (err) => {
     let result;
@@ -87,25 +65,13 @@ class LangChainPlusClient {
             enumerable: true,
             configurable: true,
             writable: true,
-            value: typeof process !== "undefined"
-                ? // eslint-disable-next-line no-process-env
-                    process.env?.LANGCHAIN_API_KEY
-                : undefined
+            value: (0, env_js_1.getEnvironmentVariable)("LANGCHAIN_API_KEY")
         });
         Object.defineProperty(this, "apiUrl", {
             enumerable: true,
             configurable: true,
             writable: true,
-            value: (typeof process !== "undefined"
-                ? // eslint-disable-next-line no-process-env
-                    process.env?.LANGCHAIN_ENDPOINT
-                : undefined) || "http://localhost:1984"
-        });
-        Object.defineProperty(this, "tenantId", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
+            value: (0, env_js_1.getEnvironmentVariable)("LANGCHAIN_ENDPOINT") || "http://localhost:1984"
         });
         Object.defineProperty(this, "caller", {
             enumerable: true,
@@ -113,42 +79,23 @@ class LangChainPlusClient {
             writable: true,
             value: void 0
         });
+        Object.defineProperty(this, "timeout", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 10000
+        });
         this.apiUrl = config.apiUrl ?? this.apiUrl;
         this.apiKey = config.apiKey;
-        const tenantId = config.tenantId ??
-            (typeof process !== "undefined"
-                ? // eslint-disable-next-line no-process-env
-                    process.env?.LANGCHAIN_TENANT_ID
-                : undefined);
-        if (tenantId === undefined) {
-            throw new Error("No tenant ID provided and no LANGCHAIN_TENANT_ID env var");
-        }
-        else {
-            this.tenantId = tenantId;
-        }
         this.validateApiKeyIfHosted();
+        this.timeout = config.timeout ?? this.timeout;
         this.caller = new async_caller_js_1.AsyncCaller(config.callerOptions ?? {});
     }
     static async create(config = {}) {
         const apiUrl_ = config.apiUrl ??
-            ((typeof process !== "undefined"
-                ? // eslint-disable-next-line no-process-env
-                    process.env?.LANGCHAIN_ENDPOINT
-                : undefined) ||
-                "http://localhost:1984");
-        const apiKey_ = config.apiKey ??
-            (typeof process !== "undefined"
-                ? // eslint-disable-next-line no-process-env
-                    process.env?.LANGCHAIN_API_KEY
-                : undefined);
-        const tenantId_ = config.tenantId ??
-            ((typeof process !== "undefined"
-                ? // eslint-disable-next-line no-process-env
-                    process.env?.LANGCHAIN_TENANT_ID
-                : undefined) ||
-                (await getSeededTenantId(apiUrl_, { apiKey: apiKey_ })));
+            ((0, env_js_1.getEnvironmentVariable)("LANGCHAIN_ENDPOINT") || "http://localhost:1984");
+        const apiKey_ = config.apiKey ?? (0, env_js_1.getEnvironmentVariable)("LANGCHAIN_API_KEY");
         return new LangChainPlusClient({
-            tenantId: tenantId_,
             apiKey: apiKey_,
             apiUrl: apiUrl_,
         });
@@ -166,25 +113,28 @@ class LangChainPlusClient {
         }
         return headers;
     }
-    get queryParams() {
-        return new URLSearchParams({ tenant_id: this.tenantId });
-    }
     async _get(path, queryParams) {
-        const params = this.queryParams;
+        const params = new URLSearchParams();
         if (queryParams) {
             queryParams.forEach((value, key) => {
                 params.append(key, value);
             });
         }
-        const url = `${this.apiUrl}${path}?${params.toString()}`;
+        const url = params.toString()
+            ? `${this.apiUrl}${path}?${params.toString()}`
+            : `${this.apiUrl}${path}`;
         const response = await this.caller.call(fetch, url, {
             method: "GET",
             headers: this.headers,
+            signal: AbortSignal.timeout(this.timeout),
         });
+        // consume the response body to release the connection
+        // https://undici.nodejs.org/#/?id=garbage-collection
+        const json = await response.json();
         if (!response.ok) {
             throw new Error(`Failed to fetch ${path}: ${response.status} ${response.statusText}`);
         }
-        return response.json();
+        return json;
     }
     async readRun(runId) {
         return await this._get(`/runs/${runId}`);
@@ -249,7 +199,6 @@ class LangChainPlusClient {
         formData.append("file", csvFile, fileName);
         formData.append("input_keys", inputKeys.join(","));
         formData.append("output_keys", outputKeys.join(","));
-        formData.append("tenant_id", this.tenantId);
         if (description) {
             formData.append("description", description);
         }
@@ -257,15 +206,17 @@ class LangChainPlusClient {
             method: "POST",
             headers: this.headers,
             body: formData,
+            signal: AbortSignal.timeout(this.timeout),
         });
+        // consume the response body to release the connection
+        // https://undici.nodejs.org/#/?id=garbage-collection
+        const result = await response.json();
         if (!response.ok) {
-            const result = await response.json();
             if (result.detail && result.detail.includes("already exists")) {
                 throw new Error(`Dataset ${fileName} already exists`);
             }
             throw new Error(`Failed to upload CSV: ${response.status} ${response.statusText}`);
         }
-        const result = await response.json();
         return result;
     }
     async createDataset(name, { description }) {
@@ -275,17 +226,18 @@ class LangChainPlusClient {
             body: JSON.stringify({
                 name,
                 description,
-                tenant_id: this.tenantId,
             }),
+            signal: AbortSignal.timeout(this.timeout),
         });
+        // consume the response body to release the connection
+        // https://undici.nodejs.org/#/?id=garbage-collection
+        const result = await response.json();
         if (!response.ok) {
-            const result = await response.json();
             if (result.detail && result.detail.includes("already exists")) {
                 throw new Error(`Dataset ${name} already exists`);
             }
             throw new Error(`Failed to create dataset ${response.status} ${response.statusText}`);
         }
-        const result = await response.json();
         return result;
     }
     async readDataset({ datasetId, datasetName, }) {
@@ -345,11 +297,14 @@ class LangChainPlusClient {
         const response = await this.caller.call(fetch, this.apiUrl + path, {
             method: "DELETE",
             headers: this.headers,
+            signal: AbortSignal.timeout(this.timeout),
         });
+        // consume the response body to release the connection
+        // https://undici.nodejs.org/#/?id=garbage-collection
+        const results = await response.json();
         if (!response.ok) {
             throw new Error(`Failed to delete ${path}: ${response.status} ${response.statusText}`);
         }
-        const results = await response.json();
         return results;
     }
     async createExample(inputs, outputs, { datasetId, datasetName, createdAt, }) {
@@ -375,11 +330,14 @@ class LangChainPlusClient {
             method: "POST",
             headers: { ...this.headers, "Content-Type": "application/json" },
             body: JSON.stringify(data),
+            signal: AbortSignal.timeout(this.timeout),
         });
+        // consume the response body to release the connection
+        // https://undici.nodejs.org/#/?id=garbage-collection
+        const result = await response.json();
         if (!response.ok) {
             throw new Error(`Failed to create example: ${response.status} ${response.statusText}`);
         }
-        const result = await response.json();
         return result;
     }
     async readExample(exampleId) {
@@ -412,11 +370,14 @@ class LangChainPlusClient {
         const response = await this.caller.call(fetch, this.apiUrl + path, {
             method: "DELETE",
             headers: this.headers,
+            signal: AbortSignal.timeout(this.timeout),
         });
+        // consume the response body to release the connection
+        // https://undici.nodejs.org/#/?id=garbage-collection
+        const result = await response.json();
         if (!response.ok) {
             throw new Error(`Failed to delete ${path}: ${response.status} ${response.statusText}`);
         }
-        const result = await response.json();
         return result;
     }
     async runLLM(example, tracer, llm, { numRepetitions = 1 }) {

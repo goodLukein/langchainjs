@@ -1,20 +1,23 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { PostgrestFilterBuilder } from "@supabase/postgrest-js";
 import { VectorStore } from "./base.js";
 import { Embeddings } from "../embeddings/base.js";
 import { Document } from "../document.js";
 type SupabaseMetadata = Record<string, any>;
+export type SupabaseFilter = PostgrestFilterBuilder<any, any, any>;
+export type SupabaseFilterRPCCall = (rpcCall: SupabaseFilter) => SupabaseFilter;
 export interface SupabaseLibArgs {
     client: SupabaseClient;
     tableName?: string;
     queryName?: string;
-    filter?: SupabaseMetadata;
+    filter?: SupabaseMetadata | SupabaseFilterRPCCall;
 }
 export declare class SupabaseVectorStore extends VectorStore {
-    FilterType: SupabaseMetadata;
+    FilterType: SupabaseMetadata | SupabaseFilterRPCCall;
     client: SupabaseClient;
     tableName: string;
     queryName: string;
-    filter?: SupabaseMetadata;
+    filter?: SupabaseMetadata | SupabaseFilterRPCCall;
     constructor(embeddings: Embeddings, args: SupabaseLibArgs);
     addDocuments(documents: Document[]): Promise<void>;
     addVectors(vectors: number[][], documents: Document[]): Promise<void>;

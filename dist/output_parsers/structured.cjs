@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.JsonMarkdownStructuredOutputParser = exports.StructuredOutputParser = void 0;
+exports.AsymmetricStructuredOutputParser = exports.JsonMarkdownStructuredOutputParser = exports.StructuredOutputParser = void 0;
 const zod_1 = require("zod");
 const zod_to_json_schema_1 = require("zod-to-json-schema");
 const output_parser_js_1 = require("../schema/output_parser.cjs");
@@ -63,31 +63,89 @@ class JsonMarkdownStructuredOutputParser extends StructuredOutputParser {
     }
     _schemaToInstruction(schemaInput, indent = 2) {
         const schema = schemaInput;
-        let nullable = false;
-        if (Array.isArray(schema.type)) {
-            const [actualType, nullStr] = schema.type;
-            nullable = nullStr === "null";
-            schema.type = actualType;
-        }
-        if (schema.type === "object" && schema.properties) {
+        if ("type" in schema) {
+            let nullable = false;
+            let type;
+            if (Array.isArray(schema.type)) {
+                const nullIdx = schema.type.findIndex((type) => type === "null");
+                if (nullIdx !== -1) {
+                    nullable = true;
+                    schema.type.splice(nullIdx, 1);
+                }
+                type = schema.type.join(" | ");
+            }
+            else {
+                type = schema.type;
+            }
+            if (schema.type === "object" && schema.properties) {
+                const description = schema.description
+                    ? ` // ${schema.description}`
+                    : "";
+                const properties = Object.entries(schema.properties)
+                    .map(([key, value]) => {
+                    const isOptional = schema.required?.includes(key)
+                        ? ""
+                        : " (optional)";
+                    return `${" ".repeat(indent)}"${key}": ${this._schemaToInstruction(value, indent + 2)}${isOptional}`;
+                })
+                    .join("\n");
+                return `{\n${properties}\n${" ".repeat(indent - 2)}}${description}`;
+            }
+            if (schema.type === "array" && schema.items) {
+                const description = schema.description
+                    ? ` // ${schema.description}`
+                    : "";
+                return `array[\n${" ".repeat(indent)}${this._schemaToInstruction(schema.items, indent + 2)}\n${" ".repeat(indent - 2)}] ${description}`;
+            }
+            const isNullable = nullable ? " (nullable)" : "";
             const description = schema.description ? ` // ${schema.description}` : "";
-            const properties = Object.entries(schema.properties)
-                .map(([key, value]) => {
-                const isOptional = schema.required?.includes(key)
-                    ? ""
-                    : " (optional)";
-                return `${" ".repeat(indent)}"${key}": ${this._schemaToInstruction(value, indent + 2)}${isOptional}`;
-            })
-                .join("\n");
-            return `{\n${properties}\n${" ".repeat(indent - 2)}}${description}`;
+            return `${type}${description}${isNullable}`;
         }
-        if (schema.type === "array" && schema.items) {
-            const description = schema.description ? ` // ${schema.description}` : "";
-            return `array[\n${" ".repeat(indent)}${this._schemaToInstruction(schema.items)}\n${" ".repeat(indent - 2)}] ${description}`;
+        if ("anyOf" in schema) {
+            return schema.anyOf
+                .map((s) => this._schemaToInstruction(s, indent))
+                .join(`\n${" ".repeat(indent - 2)}`);
         }
-        const isNullable = nullable ? " (nullable)" : "";
-        const description = schema.description ? ` // ${schema.description}` : "";
-        return `${schema.type}${description}${isNullable}`;
+        throw new Error("unsupported schema type");
+    }
+    static fromZodSchema(schema) {
+        return new this(schema);
+    }
+    static fromNamesAndDescriptions(schemas) {
+        const zodSchema = zod_1.z.object(Object.fromEntries(Object.entries(schemas).map(([name, description]) => [name, zod_1.z.string().describe(description)])));
+        return new this(zodSchema);
     }
 }
 exports.JsonMarkdownStructuredOutputParser = JsonMarkdownStructuredOutputParser;
+class AsymmetricStructuredOutputParser extends output_parser_js_1.BaseOutputParser {
+    constructor(inputSchema) {
+        super();
+        Object.defineProperty(this, "inputSchema", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: inputSchema
+        });
+        Object.defineProperty(this, "structuredInputParser", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        this.structuredInputParser = new JsonMarkdownStructuredOutputParser(inputSchema);
+    }
+    async parse(text) {
+        let parsedInput;
+        try {
+            parsedInput = await this.structuredInputParser.parse(text);
+        }
+        catch (e) {
+            throw new output_parser_js_1.OutputParserException(`Failed to parse. Text: "${text}". Error: ${e}`, text);
+        }
+        return this.outputProcessor(parsedInput);
+    }
+    getFormatInstructions() {
+        return this.structuredInputParser.getFormatInstructions();
+    }
+}
+exports.AsymmetricStructuredOutputParser = AsymmetricStructuredOutputParser;

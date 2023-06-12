@@ -4,13 +4,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PromptLayerOpenAIChat = exports.OpenAIChat = exports.PromptLayerOpenAI = exports.OpenAI = void 0;
-const browser_or_node_1 = require("browser-or-node");
 const openai_1 = require("openai");
+const env_js_1 = require("../util/env.cjs");
 const axios_fetch_adapter_js_1 = __importDefault(require("../util/axios-fetch-adapter.cjs"));
 const chunk_js_1 = require("../util/chunk.cjs");
 const base_js_1 = require("./base.cjs");
 const count_tokens_js_1 = require("../base_language/count_tokens.cjs");
 const openai_chat_js_1 = require("./openai-chat.cjs");
+const prompt_layer_js_1 = require("../util/prompt-layer.cjs");
 /**
  * Wrapper around OpenAI large language models.
  *
@@ -30,6 +31,9 @@ const openai_chat_js_1 = require("./openai-chat.cjs");
  * if not explicitly available on this class.
  */
 class OpenAI extends base_js_1.BaseLLM {
+    get callKeys() {
+        return ["stop", "signal", "timeout", "options"];
+    }
     constructor(fields, configuration) {
         if (fields?.modelName?.startsWith("gpt-3.5-turbo") ||
             fields?.modelName?.startsWith("gpt-4") ||
@@ -158,37 +162,20 @@ class OpenAI extends base_js_1.BaseLLM {
             writable: true,
             value: void 0
         });
-        const apiKey = fields?.openAIApiKey ??
-            (typeof process !== "undefined"
-                ? // eslint-disable-next-line no-process-env
-                    process.env?.OPENAI_API_KEY
-                : undefined);
+        const apiKey = fields?.openAIApiKey ?? (0, env_js_1.getEnvironmentVariable)("OPENAI_API_KEY");
         const azureApiKey = fields?.azureOpenAIApiKey ??
-            (typeof process !== "undefined"
-                ? // eslint-disable-next-line no-process-env
-                    process.env?.AZURE_OPENAI_API_KEY
-                : undefined);
+            (0, env_js_1.getEnvironmentVariable)("AZURE_OPENAI_API_KEY");
         if (!azureApiKey && !apiKey) {
             throw new Error("(Azure) OpenAI API key not found");
         }
         const azureApiInstanceName = fields?.azureOpenAIApiInstanceName ??
-            (typeof process !== "undefined"
-                ? // eslint-disable-next-line no-process-env
-                    process.env?.AZURE_OPENAI_API_INSTANCE_NAME
-                : undefined);
+            (0, env_js_1.getEnvironmentVariable)("AZURE_OPENAI_API_INSTANCE_NAME");
         const azureApiDeploymentName = (fields?.azureOpenAIApiCompletionsDeploymentName ||
             fields?.azureOpenAIApiDeploymentName) ??
-            (typeof process !== "undefined"
-                ? // eslint-disable-next-line no-process-env
-                    process.env?.AZURE_OPENAI_API_COMPLETIONS_DEPLOYMENT_NAME ||
-                        // eslint-disable-next-line no-process-env
-                        process.env?.AZURE_OPENAI_API_DEPLOYMENT_NAME
-                : undefined);
+            ((0, env_js_1.getEnvironmentVariable)("AZURE_OPENAI_API_COMPLETIONS_DEPLOYMENT_NAME") ||
+                (0, env_js_1.getEnvironmentVariable)("AZURE_OPENAI_API_DEPLOYMENT_NAME"));
         const azureApiVersion = fields?.azureOpenAIApiVersion ??
-            (typeof process !== "undefined"
-                ? // eslint-disable-next-line no-process-env
-                    process.env?.AZURE_OPENAI_API_VERSION
-                : undefined);
+            (0, env_js_1.getEnvironmentVariable)("AZURE_OPENAI_API_VERSION");
         this.modelName = fields?.modelName ?? this.modelName;
         this.modelKwargs = fields?.modelKwargs ?? {};
         this.batchSize = fields?.batchSize ?? this.batchSize;
@@ -264,8 +251,8 @@ class OpenAI extends base_js_1.BaseLLM {
     /**
      * Call out to OpenAI's endpoint with k unique prompts
      *
-     * @param prompts - The prompts to pass into the model.
-     * @param [stop] - Optional list of stop words to use when generating.
+     * @param [prompts] - The prompts to pass into the model.
+     * @param [options] - Optional list of stop words to use when generating.
      * @param [runManager] - Optional callback manager to use when generating.
      *
      * @returns The full LLM output.
@@ -277,13 +264,8 @@ class OpenAI extends base_js_1.BaseLLM {
      * const response = await openai.generate(["Tell me a joke."]);
      * ```
      */
-    async _generate(prompts, stopOrOptions, runManager) {
-        const stop = Array.isArray(stopOrOptions)
-            ? stopOrOptions
-            : stopOrOptions?.stop;
-        const options = Array.isArray(stopOrOptions)
-            ? {}
-            : stopOrOptions?.options ?? {};
+    async _generate(prompts, options, runManager) {
+        const { stop } = options;
         const subPrompts = (0, chunk_js_1.chunkArray)(prompts, this.batchSize);
         const choices = [];
         const tokenUsage = {};
@@ -313,7 +295,8 @@ class OpenAI extends base_js_1.BaseLLM {
                         ...params,
                         prompt: subPrompts[i],
                     }, {
-                        ...options,
+                        signal: options.signal,
+                        ...options.options,
                         adapter: axios_fetch_adapter_js_1.default,
                         responseType: "stream",
                         onmessage: (event) => {
@@ -374,7 +357,10 @@ class OpenAI extends base_js_1.BaseLLM {
                 : await this.completionWithRetry({
                     ...params,
                     prompt: subPrompts[i],
-                }, options);
+                }, {
+                    signal: options.signal,
+                    ...options.options,
+                });
             choices.push(...data.choices);
             const { completion_tokens: completionTokens, prompt_tokens: promptTokens, total_tokens: totalTokens, } = data.usage ?? {};
             if (completionTokens) {
@@ -417,7 +403,7 @@ class OpenAI extends base_js_1.BaseLLM {
             this.client = new openai_1.OpenAIApi(clientConfig);
         }
         const axiosOptions = {
-            adapter: browser_or_node_1.isNode ? undefined : axios_fetch_adapter_js_1.default,
+            adapter: (0, env_js_1.isNode)() ? undefined : axios_fetch_adapter_js_1.default,
             ...this.clientConfig.baseOptions,
             ...options,
         };
@@ -459,13 +445,17 @@ class PromptLayerOpenAI extends OpenAI {
             writable: true,
             value: void 0
         });
+        Object.defineProperty(this, "returnPromptLayerId", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         this.plTags = fields?.plTags ?? [];
         this.promptLayerApiKey =
             fields?.promptLayerApiKey ??
-                (typeof process !== "undefined"
-                    ? // eslint-disable-next-line no-process-env
-                        process.env?.PROMPTLAYER_API_KEY
-                    : undefined);
+                (0, env_js_1.getEnvironmentVariable)("PROMPTLAYER_API_KEY");
+        this.returnPromptLayerId = fields?.returnPromptLayerId;
         if (!this.promptLayerApiKey) {
             throw new Error("Missing PromptLayer API key");
         }
@@ -474,28 +464,31 @@ class PromptLayerOpenAI extends OpenAI {
         if (request.stream) {
             return super.completionWithRetry(request, options);
         }
-        const requestStartTime = Date.now();
         const response = await super.completionWithRetry(request);
-        const requestEndTime = Date.now();
-        // https://github.com/MagnivOrg/promptlayer-js-helper
-        await this.caller.call(fetch, "https://api.promptlayer.com/track-request", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-            },
-            body: JSON.stringify({
-                function_name: "openai.Completion.create",
-                args: [],
-                kwargs: { engine: request.model, prompt: request.prompt },
-                tags: this.plTags ?? [],
-                request_response: response,
-                request_start_time: Math.floor(requestStartTime / 1000),
-                request_end_time: Math.floor(requestEndTime / 1000),
-                api_key: this.promptLayerApiKey,
-            }),
-        });
         return response;
+    }
+    async _generate(prompts, options, runManager) {
+        const requestStartTime = Date.now();
+        const generations = await super._generate(prompts, options, runManager);
+        for (let i = 0; i < generations.generations.length; i += 1) {
+            const requestEndTime = Date.now();
+            const parsedResp = {
+                text: generations.generations[i][0].text,
+                llm_output: generations.llmOutput,
+            };
+            const promptLayerRespBody = await (0, prompt_layer_js_1.promptLayerTrackRequest)(this.caller, "langchain.PromptLayerOpenAI", [prompts[i]], this._identifyingParams(), this.plTags, parsedResp, requestStartTime, requestEndTime, this.promptLayerApiKey);
+            let promptLayerRequestId;
+            if (this.returnPromptLayerId === true) {
+                if (promptLayerRespBody && promptLayerRespBody.success === true) {
+                    promptLayerRequestId = promptLayerRespBody.request_id;
+                }
+                generations.generations[i][0].generationInfo = {
+                    ...generations.generations[i][0].generationInfo,
+                    promptLayerRequestId,
+                };
+            }
+        }
+        return generations;
     }
 }
 exports.PromptLayerOpenAI = PromptLayerOpenAI;

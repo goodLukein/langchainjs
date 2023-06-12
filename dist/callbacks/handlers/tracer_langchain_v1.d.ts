@@ -4,7 +4,7 @@ export interface BaseRunV1 {
     uuid: string;
     parent_uuid?: string;
     start_time: number;
-    end_time: number;
+    end_time?: number;
     execution_order: number;
     child_execution_order: number;
     serialized: {

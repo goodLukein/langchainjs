@@ -1,8 +1,8 @@
 import { AsyncCaller } from "../../util/async_caller.js";
-import { getRuntimeEnvironment } from "../../util/env.js";
+import { getEnvironmentVariable, getRuntimeEnvironment, } from "../../util/env.js";
 import { BaseTracer } from "./tracer.js";
 export class LangChainTracer extends BaseTracer {
-    constructor({ exampleId, tenantId, sessionName, sessionExtra, callerParams, } = {}) {
+    constructor({ exampleId, sessionName, callerParams, timeout, } = {}) {
         super();
         Object.defineProperty(this, "name", {
             enumerable: true,
@@ -14,10 +14,7 @@ export class LangChainTracer extends BaseTracer {
             enumerable: true,
             configurable: true,
             writable: true,
-            value: (typeof process !== "undefined"
-                ? // eslint-disable-next-line no-process-env
-                    process.env?.LANGCHAIN_ENDPOINT
-                : undefined) || "http://localhost:1984"
+            value: getEnvironmentVariable("LANGCHAIN_ENDPOINT") || "http://localhost:1984"
         });
         Object.defineProperty(this, "headers", {
             enumerable: true,
@@ -33,25 +30,7 @@ export class LangChainTracer extends BaseTracer {
             writable: true,
             value: void 0
         });
-        Object.defineProperty(this, "sessionExtra", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "session", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
         Object.defineProperty(this, "exampleId", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "tenantId", {
             enumerable: true,
             configurable: true,
             writable: true,
@@ -63,74 +42,23 @@ export class LangChainTracer extends BaseTracer {
             writable: true,
             value: void 0
         });
-        // eslint-disable-next-line no-process-env
-        if (typeof process !== "undefined" && process.env?.LANGCHAIN_API_KEY) {
-            // eslint-disable-next-line no-process-env
-            this.headers["x-api-key"] = process.env?.LANGCHAIN_API_KEY;
+        Object.defineProperty(this, "timeout", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 5000
+        });
+        const apiKey = getEnvironmentVariable("LANGCHAIN_API_KEY");
+        if (apiKey) {
+            this.headers["x-api-key"] = apiKey;
         }
-        this.tenantId =
-            tenantId ??
-                (typeof process !== "undefined"
-                    ? // eslint-disable-next-line no-process-env
-                        process.env?.LANGCHAIN_TENANT_ID
-                    : undefined);
         this.sessionName =
-            sessionName ??
-                (typeof process !== "undefined"
-                    ? // eslint-disable-next-line no-process-env
-                        process.env?.LANGCHAIN_SESSION
-                    : undefined) ??
-                "default";
-        this.sessionExtra = sessionExtra;
+            sessionName ?? getEnvironmentVariable("LANGCHAIN_SESSION");
         this.exampleId = exampleId;
-        this.caller = new AsyncCaller(callerParams ?? {});
-    }
-    async ensureSession() {
-        if (this.session) {
-            return this.session;
-        }
-        const tenantId = await this.ensureTenantId();
-        const endpoint = `${this.endpoint}/sessions?upsert=true`;
-        const res = await this.caller.call(fetch, endpoint, {
-            method: "POST",
-            headers: this.headers,
-            body: JSON.stringify({
-                name: this.sessionName,
-                tenant_id: tenantId,
-                extra: this.sessionExtra,
-            }),
-        });
-        if (!res.ok) {
-            const body = await res.text();
-            throw new Error(`Failed to create session: ${res.status} ${res.statusText} ${body}`);
-        }
-        const session = await res.json();
-        this.session = session;
-        return session;
-    }
-    async ensureTenantId() {
-        if (this.tenantId) {
-            return this.tenantId;
-        }
-        const endpoint = `${this.endpoint}/tenants`;
-        const response = await this.caller.call(fetch, endpoint, {
-            method: "GET",
-            headers: this.headers,
-        });
-        if (!response.ok) {
-            const body = await response.text();
-            throw new Error(`Failed to fetch tenant ID: ${response.status} ${response.statusText} ${body}`);
-        }
-        const tenants = await response.json();
-        if (!tenants || tenants.length === 0) {
-            throw new Error(`No tenants found for endpoint ${endpoint}`);
-        }
-        const tenantId = tenants[0].id;
-        this.tenantId = tenantId;
-        return tenantId;
+        this.timeout = timeout ?? this.timeout;
+        this.caller = new AsyncCaller(callerParams ?? { maxRetries: 2 });
     }
     async _convertToCreate(run, example_id = undefined) {
-        const session = await this.ensureSession();
         const runExtra = run.extra ?? {};
         runExtra.runtime = await getRuntimeEnvironment();
         const persistedRun = {
@@ -139,29 +67,84 @@ export class LangChainTracer extends BaseTracer {
             start_time: run.start_time,
             end_time: run.end_time,
             run_type: run.run_type,
-            reference_example_id: example_id,
+            // example_id is only set for the root run
+            reference_example_id: run.parent_run_id ? undefined : example_id,
             extra: runExtra,
+            parent_run_id: run.parent_run_id,
             execution_order: run.execution_order,
             serialized: run.serialized,
             error: run.error,
             inputs: run.inputs,
             outputs: run.outputs ?? {},
-            session_id: session.id,
-            child_runs: await Promise.all(run.child_runs.map((child_run) => this._convertToCreate(child_run))),
+            session_name: this.sessionName,
+            child_runs: [],
         };
         return persistedRun;
     }
-    async persistRun(run) {
+    async persistRun(_run) { }
+    async _persistRunSingle(run) {
         const persistedRun = await this._convertToCreate(run, this.exampleId);
         const endpoint = `${this.endpoint}/runs`;
         const response = await this.caller.call(fetch, endpoint, {
             method: "POST",
             headers: this.headers,
             body: JSON.stringify(persistedRun),
+            signal: AbortSignal.timeout(this.timeout),
         });
+        // consume the response body to release the connection
+        // https://undici.nodejs.org/#/?id=garbage-collection
+        const body = await response.text();
         if (!response.ok) {
-            const body = await response.text();
             throw new Error(`Failed to persist run: ${response.status} ${response.statusText} ${body}`);
         }
+    }
+    async _updateRunSingle(run) {
+        const runUpdate = {
+            end_time: run.end_time,
+            error: run.error,
+            outputs: run.outputs,
+            parent_run_id: run.parent_run_id,
+            reference_example_id: run.reference_example_id,
+        };
+        const endpoint = `${this.endpoint}/runs/${run.id}`;
+        const response = await this.caller.call(fetch, endpoint, {
+            method: "PATCH",
+            headers: this.headers,
+            body: JSON.stringify(runUpdate),
+            signal: AbortSignal.timeout(this.timeout),
+        });
+        // consume the response body to release the connection
+        // https://undici.nodejs.org/#/?id=garbage-collection
+        const body = await response.text();
+        if (!response.ok) {
+            throw new Error(`Failed to update run: ${response.status} ${response.statusText} ${body}`);
+        }
+    }
+    async onLLMStart(run) {
+        await this._persistRunSingle(run);
+    }
+    async onLLMEnd(run) {
+        await this._updateRunSingle(run);
+    }
+    async onLLMError(run) {
+        await this._updateRunSingle(run);
+    }
+    async onChainStart(run) {
+        await this._persistRunSingle(run);
+    }
+    async onChainEnd(run) {
+        await this._updateRunSingle(run);
+    }
+    async onChainError(run) {
+        await this._updateRunSingle(run);
+    }
+    async onToolStart(run) {
+        await this._persistRunSingle(run);
+    }
+    async onToolEnd(run) {
+        await this._updateRunSingle(run);
+    }
+    async onToolError(run) {
+        await this._updateRunSingle(run);
     }
 }

@@ -1,3 +1,4 @@
+import { GRAMMAR } from "./grammar/parser_grammar.js";
 export class NodeHandler {
     constructor(parentHandler) {
         Object.defineProperty(this, "parentHandler", {
@@ -12,15 +13,15 @@ export class ASTParser {
     static async importASTParser() {
         try {
             if (!ASTParser.astParseInstance) {
-                const meriyah = await import("meriyah");
-                ASTParser.astParseInstance =
-                    meriyah.parseScript;
+                const { default: peggy } = await import("peggy");
+                const parser = peggy.generate(GRAMMAR);
+                const { parse } = parser;
+                ASTParser.astParseInstance = parse;
             }
             return ASTParser.astParseInstance;
         }
         catch (e) {
-            console.log(e);
-            throw new Error("Failed to import meriyah. Please install meriyah (i.e. npm install meriyah).");
+            throw new Error(`Failed to import peggy. Please install peggy (i.e. "npm install peggy" or "yarn add peggy").`);
         }
     }
     static isProgram(node) {
@@ -32,17 +33,14 @@ export class ASTParser {
     static isCallExpression(node) {
         return node.type === "CallExpression";
     }
-    static isLiteral(node) {
-        return node.type === "Literal";
-    }
     static isStringLiteral(node) {
-        return node.type === "Literal" && typeof node.value === "string";
+        return node.type === "StringLiteral" && typeof node.value === "string";
     }
     static isNumericLiteral(node) {
-        return node.type === "Literal" && typeof node.value === "number";
+        return node.type === "NumericLiteral" && typeof node.value === "number";
     }
     static isBooleanLiteral(node) {
-        return node.type === "Literal" && typeof node.value === "boolean";
+        return node.type === "BooleanLiteral" && typeof node.value === "boolean";
     }
     static isIdentifier(node) {
         return node.type === "Identifier";
@@ -53,8 +51,8 @@ export class ASTParser {
     static isArrayExpression(node) {
         return node.type === "ArrayExpression";
     }
-    static isProperty(node) {
-        return node.type === "Property";
+    static isPropertyAssignment(node) {
+        return node.type === "PropertyAssignment";
     }
     static isMemberExpression(node) {
         return node.type === "MemberExpression";

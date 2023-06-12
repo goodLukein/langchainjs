@@ -30,13 +30,13 @@ class MemberExpressionHandler extends base_js_1.NodeHandler {
         if (base_js_1.ASTParser.isIdentifier(object)) {
             identifier = object.name.replace(/^["'](.+(?=["']$))["']$/, "$1");
         }
-        else if (base_js_1.ASTParser.isLiteral(object)) {
+        else if (base_js_1.ASTParser.isStringLiteral(object)) {
             identifier = `${object.value}`.replace(/^["'](.+(?=["']$))["']$/, "$1");
         }
         else {
             throw new Error("Invalid object type");
         }
-        if (object.type !== "Identifier" && object.type !== "Literal") {
+        if (object.type !== "Identifier" && object.type !== "StringLiteral") {
             throw new Error("ArrayExpression is not supported");
         }
         return { type: "member_expression", identifier, property: prop };

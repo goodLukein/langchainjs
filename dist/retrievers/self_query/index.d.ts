@@ -3,12 +3,13 @@ import { QueryConstructorChainOptions } from "../../chains/query_constructor/ind
 import { Document } from "../../document.js";
 import { BaseRetriever } from "../../schema/index.js";
 import { VectorStore } from "../../vectorstores/base.js";
-import { BaseTranslator, BasicTranslator } from "./translator.js";
-export { BaseTranslator, BasicTranslator };
+import { FunctionalTranslator } from "./functional.js";
+import { BaseTranslator, BasicTranslator } from "./base.js";
+export { BaseTranslator, BasicTranslator, FunctionalTranslator };
 export type SelfQueryRetrieverArgs = {
     vectorStore: VectorStore;
-    llmChain: LLMChain;
     structuredQueryTranslator: BaseTranslator;
+    llmChain: LLMChain;
     verbose?: boolean;
     searchParams?: {
         k?: number;
@@ -26,8 +27,5 @@ export declare class SelfQueryRetriever extends BaseRetriever implements SelfQue
     };
     constructor(options: SelfQueryRetrieverArgs);
     getRelevantDocuments(query: string): Promise<Document<Record<string, unknown>>[]>;
-    static fromLLM(opts: QueryConstructorChainOptions & {
-        vectorStore: VectorStore;
-        structuredQueryTranslator: BaseTranslator;
-    }): SelfQueryRetriever;
+    static fromLLM(options: QueryConstructorChainOptions & Omit<SelfQueryRetrieverArgs, "llmChain">): SelfQueryRetriever;
 }

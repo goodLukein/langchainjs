@@ -16,7 +16,7 @@ export class ObjectLiteralExpressionHandler extends NodeHandler {
         const values = [];
         const { properties } = node;
         for (const property of properties) {
-            if (ASTParser.isProperty(property)) {
+            if (ASTParser.isPropertyAssignment(property)) {
                 values.push(await new PropertyAssignmentHandler(this.parentHandler).handle(property));
             }
         }

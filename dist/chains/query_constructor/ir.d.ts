@@ -3,11 +3,12 @@ export type OR = "or";
 export type NOT = "not";
 export type Operator = AND | OR | NOT;
 export type EQ = "eq";
+export type NE = "ne";
 export type LT = "lt";
 export type GT = "gt";
 export type LTE = "lte";
 export type GTE = "gte";
-export type Comparator = EQ | LT | GT | LTE | GTE;
+export type Comparator = EQ | NE | LT | GT | LTE | GTE;
 export declare const Operators: {
     [key: string]: Operator;
 };
@@ -27,15 +28,20 @@ export type VisitorStructuredQueryResult = {
     filter?: VisitorStructuredQueryResult | VisitorComparisonResult | VisitorOperationResult;
 };
 export declare abstract class Visitor {
+    VisitOperationOutput: object;
+    VisitComparisonOutput: object;
+    VisitStructuredQueryOutput: {
+        filter?: object;
+    };
     abstract allowedOperators: Operator[];
     abstract allowedComparators: Comparator[];
-    abstract visitOperation(operation: Operation): VisitorOperationResult;
-    abstract visitComparison(comparison: Comparison): VisitorComparisonResult;
-    abstract visitStructuredQuery(structuredQuery: StructuredQuery): VisitorStructuredQueryResult;
+    abstract visitOperation(operation: Operation): this["VisitOperationOutput"];
+    abstract visitComparison(comparison: Comparison): this["VisitComparisonOutput"];
+    abstract visitStructuredQuery(structuredQuery: StructuredQuery): this["VisitStructuredQueryOutput"];
 }
 export declare abstract class Expression {
     abstract exprName: "Operation" | "Comparison" | "StructuredQuery";
-    accept(visitor: Visitor): VisitorOperationResult | VisitorComparisonResult | VisitorStructuredQueryResult;
+    accept(visitor: Visitor): object;
 }
 export declare abstract class FilterDirective extends Expression {
 }

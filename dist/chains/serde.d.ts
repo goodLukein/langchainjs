@@ -26,6 +26,12 @@ export type SerializedVectorDBQAChain = {
     k: number;
     combine_documents_chain: SerializedBaseChain;
 };
+export type SerializedAPIChain = {
+    _type: "api_chain";
+    api_request_chain: SerializedLLMChain;
+    api_answer_chain: SerializedLLMChain;
+    api_docs: string;
+};
 export type SerializedStuffDocumentsChain = {
     _type: "stuff_documents_chain";
     llm_chain?: SerializedLLMChain;
@@ -63,4 +69,4 @@ export type SerializedConstitutionalChain = {
     revisionChain?: SerializedBaseChain;
     ConstitutionalPrinciple?: SerializedConstitutionalPrinciple[];
 };
-export type SerializedBaseChain = SerializedLLMChain | SerializedSequentialChain | SerializedSimpleSequentialChain | SerializedVectorDBQAChain | SerializedStuffDocumentsChain | SerializedSqlDatabaseChain | SerializedChatVectorDBQAChain | SerializedMapReduceDocumentsChain | SerializedAnalyzeDocumentChain | SerializedRefineDocumentsChain | SerializedConstitutionalChain;
+export type SerializedBaseChain = SerializedLLMChain | SerializedSequentialChain | SerializedSimpleSequentialChain | SerializedVectorDBQAChain | SerializedAPIChain | SerializedStuffDocumentsChain | SerializedSqlDatabaseChain | SerializedChatVectorDBQAChain | SerializedMapReduceDocumentsChain | SerializedAnalyzeDocumentChain | SerializedRefineDocumentsChain | SerializedConstitutionalChain;

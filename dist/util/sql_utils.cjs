@@ -95,6 +95,18 @@ const getTableAndColumnsName = async (appDataSource) => {
         const rep = await appDataSource.query(sql);
         return formatToSqlTable(rep);
     }
+    if (appDataSource.options.type === "mssql") {
+        sql =
+            "SELECT " +
+                "TABLE_NAME AS table_name, " +
+                "COLUMN_NAME AS column_name, " +
+                "DATA_TYPE AS data_type, " +
+                "IS_NULLABLE AS is_nullable " +
+                "FROM INFORMATION_SCHEMA.COLUMNS " +
+                "ORDER BY TABLE_NAME, ORDINAL_POSITION;";
+        const rep = await appDataSource.query(sql);
+        return formatToSqlTable(rep);
+    }
     throw new Error("Database type not implemented yet");
 };
 exports.getTableAndColumnsName = getTableAndColumnsName;
@@ -137,6 +149,9 @@ const generateTableInfoFromTables = async (tables, appDataSource, nbSampleRow) =
             const schema = appDataSource.options?.schema ?? "public";
             sqlSelectInfoQuery = `SELECT * FROM "${schema}"."${currentTable.tableName}" LIMIT ${nbSampleRow};\n`;
         }
+        else if (appDataSource.options.type === "mssql") {
+            sqlSelectInfoQuery = `SELECT TOP ${nbSampleRow} * FROM [${currentTable.tableName}];\n`;
+        }
         else {
             sqlSelectInfoQuery = `SELECT * FROM "${currentTable.tableName}" LIMIT ${nbSampleRow};\n`;
         }
@@ -169,6 +184,9 @@ const getPromptTemplateFromDataSource = (appDataSource) => {
     }
     if (appDataSource.options.type === "mysql") {
         return sql_db_prompt_js_1.SQL_MYSQL_PROMPT;
+    }
+    if (appDataSource.options.type === "mssql") {
+        return sql_db_prompt_js_1.SQL_MSSQL_PROMPT;
     }
     return sql_db_prompt_js_1.DEFAULT_SQL_DATABASE_PROMPT;
 };
