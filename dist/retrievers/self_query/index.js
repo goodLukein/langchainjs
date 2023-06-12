@@ -1,4 +1,4 @@
-import { loadQueryContstructorChain, } from "../../chains/query_constructor/index.js";
+import { loadQueryConstructorChain, } from "../../chains/query_constructor/index.js";
 import { BaseRetriever } from "../../schema/index.js";
 import { BaseTranslator, BasicTranslator } from "./translator.js";
 export { BaseTranslator, BasicTranslator };
@@ -57,7 +57,7 @@ export class SelfQueryRetriever extends BaseRetriever {
         const { structuredQueryTranslator } = opts;
         const allowedComparators = opts.allowedComparators ?? structuredQueryTranslator.allowedComparators;
         const allowedOperators = opts.allowedOperators ?? structuredQueryTranslator.allowedOperators;
-        const llmChain = loadQueryContstructorChain({
+        const llmChain = loadQueryConstructorChain({
             llm: opts.llm,
             documentContents: opts.documentContents,
             attributeInfo: opts.attributeInfo,

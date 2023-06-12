@@ -24,5 +24,5 @@ export declare class RetrievalQAChain extends BaseChain implements RetrievalQACh
     _chainType(): "retrieval_qa";
     static deserialize(_data: SerializedVectorDBQAChain, _values: LoadValues): Promise<RetrievalQAChain>;
     serialize(): SerializedVectorDBQAChain;
-    static fromLLM(llm: BaseLanguageModel, retriever: BaseRetriever, options?: Partial<Omit<RetrievalQAChainInput, "combineDocumentsChain" | "index">> & StuffQAChainParams): RetrievalQAChain;
+    static fromLLM(llm: BaseLanguageModel, retriever: BaseRetriever, options?: Partial<Omit<RetrievalQAChainInput, "retriever" | "combineDocumentsChain" | "index">> & StuffQAChainParams): RetrievalQAChain;
 }

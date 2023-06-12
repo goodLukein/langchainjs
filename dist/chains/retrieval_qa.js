@@ -70,9 +70,9 @@ export class RetrievalQAChain extends BaseChain {
             prompt: options?.prompt,
         });
         return new this({
+            ...options,
             retriever,
             combineDocumentsChain: qaChain,
-            ...options,
         });
     }
 }

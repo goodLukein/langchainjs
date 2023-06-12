@@ -1,10 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MultiRetrievalQAChain = exports.MultiPromptChain = exports.LLMRouterChain = exports.RouterChain = exports.MultiRouteChain = exports.OpenAIModerationChain = exports.PRINCIPLES = exports.ConstitutionalPrinciple = exports.ConstitutionalChain = exports.RetrievalQAChain = exports.ConversationalRetrievalQAChain = exports.SqlDatabaseChain = exports.loadSummarizationChain = exports.loadQARefineChain = exports.loadQAMapReduceChain = exports.loadQAStuffChain = exports.loadQAChain = exports.VectorDBQAChain = exports.AnalyzeDocumentChain = exports.ChatVectorDBQAChain = exports.RefineDocumentsChain = exports.MapReduceDocumentsChain = exports.StuffDocumentsChain = exports.SimpleSequentialChain = exports.SequentialChain = exports.ConversationChain = exports.LLMChain = exports.BaseChain = void 0;
+exports.MultiRetrievalQAChain = exports.MultiPromptChain = exports.LLMRouterChain = exports.RouterChain = exports.MultiRouteChain = exports.OpenAIModerationChain = exports.PRINCIPLES = exports.ConstitutionalPrinciple = exports.ConstitutionalChain = exports.RetrievalQAChain = exports.ConversationalRetrievalQAChain = exports.SqlDatabaseChain = exports.loadSummarizationChain = exports.loadQARefineChain = exports.loadQAMapReduceChain = exports.loadQAStuffChain = exports.loadQAChain = exports.VectorDBQAChain = exports.AnalyzeDocumentChain = exports.ChatVectorDBQAChain = exports.RefineDocumentsChain = exports.MapReduceDocumentsChain = exports.StuffDocumentsChain = exports.SimpleSequentialChain = exports.SequentialChain = exports.ConversationChain = exports.APIChain = exports.LLMChain = exports.BaseChain = void 0;
 var base_js_1 = require("./base.cjs");
 Object.defineProperty(exports, "BaseChain", { enumerable: true, get: function () { return base_js_1.BaseChain; } });
 var llm_chain_js_1 = require("./llm_chain.cjs");
 Object.defineProperty(exports, "LLMChain", { enumerable: true, get: function () { return llm_chain_js_1.LLMChain; } });
+var api_chain_js_1 = require("./api/api_chain.cjs");
+Object.defineProperty(exports, "APIChain", { enumerable: true, get: function () { return api_chain_js_1.APIChain; } });
 var conversation_js_1 = require("./conversation.cjs");
 Object.defineProperty(exports, "ConversationChain", { enumerable: true, get: function () { return conversation_js_1.ConversationChain; } });
 var sequential_chain_js_1 = require("./sequential_chain.cjs");

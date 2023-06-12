@@ -201,9 +201,10 @@ export class FaissStore extends SaveableVectorStore {
         try {
             const { default: { IndexFlatL2 }, } = await import("faiss-node");
             return { IndexFlatL2 };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         }
         catch (err) {
-            throw new Error("Please install faiss-node as a dependency with, e.g. `npm install -S faiss-node`");
+            throw new Error(`Could not import faiss-node. Please install faiss-node as a dependency with, e.g. \`npm install -S faiss-node\` and make sure you have \`libomp\` installed in your path.\n\nError: ${err?.message}`);
         }
     }
     static async importPickleparser() {

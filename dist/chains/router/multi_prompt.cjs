@@ -12,7 +12,19 @@ const conversation_js_1 = require("../../chains/conversation.cjs");
 const utils_js_1 = require("./utils.cjs");
 const router_js_1 = require("../../output_parsers/router.cjs");
 class MultiPromptChain extends multi_route_js_1.MultiRouteChain {
+    /**
+     * @deprecated Use `fromLLMAndPrompts` instead
+     */
     static fromPrompts(llm, promptNames, promptDescriptions, promptTemplates, defaultChain, options) {
+        return MultiPromptChain.fromLLMAndPrompts(llm, {
+            promptNames,
+            promptDescriptions,
+            promptTemplates,
+            defaultChain,
+            multiRouteChainOpts: options,
+        });
+    }
+    static fromLLMAndPrompts(llm, { promptNames, promptDescriptions, promptTemplates, defaultChain, llmChainOpts, conversationChainOpts, multiRouteChainOpts, }) {
         const destinations = (0, utils_js_1.zipEntries)(promptNames, promptDescriptions).map(([name, desc]) => `${name}: ${desc}`);
         const structuredOutputParserSchema = zod_1.z.object({
             destination: zod_1.z
@@ -53,20 +65,22 @@ class MultiPromptChain extends multi_route_js_1.MultiRouteChain {
                 throw new Error("Invalid prompt template");
             }
             acc[name] = new llm_chain_js_1.LLMChain({
+                ...llmChainOpts,
                 llm,
                 prompt: myPrompt,
             });
             return acc;
         }, {});
         const convChain = new conversation_js_1.ConversationChain({
+            ...conversationChainOpts,
             llm,
             outputKey: "text",
         });
         return new MultiPromptChain({
+            ...multiRouteChainOpts,
             routerChain,
             destinationChains,
             defaultChain: defaultChain ?? convChain,
-            ...options,
         });
     }
     _chainType() {

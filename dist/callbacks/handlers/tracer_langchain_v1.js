@@ -1,4 +1,5 @@
 import { getBufferString } from "../../memory/base.js";
+import { getEnvironmentVariable } from "../../util/env.js";
 import { BaseTracer } from "./tracer.js";
 export class LangChainTracerV1 extends BaseTracer {
     constructor() {
@@ -13,10 +14,7 @@ export class LangChainTracerV1 extends BaseTracer {
             enumerable: true,
             configurable: true,
             writable: true,
-            value: (typeof process !== "undefined"
-                ? // eslint-disable-next-line no-process-env
-                    process.env?.LANGCHAIN_ENDPOINT
-                : undefined) || "http://localhost:1984"
+            value: getEnvironmentVariable("LANGCHAIN_ENDPOINT") || "http://localhost:1984"
         });
         Object.defineProperty(this, "headers", {
             enumerable: true,
@@ -32,10 +30,9 @@ export class LangChainTracerV1 extends BaseTracer {
             writable: true,
             value: void 0
         });
-        // eslint-disable-next-line no-process-env
-        if (typeof process !== "undefined" && process.env?.LANGCHAIN_API_KEY) {
-            // eslint-disable-next-line no-process-env
-            this.headers["x-api-key"] = process.env?.LANGCHAIN_API_KEY;
+        const apiKey = getEnvironmentVariable("LANGCHAIN_API_KEY");
+        if (apiKey) {
+            this.headers["x-api-key"] = apiKey;
         }
     }
     async newSession(sessionName) {

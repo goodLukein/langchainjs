@@ -34,6 +34,15 @@ export type LLMResult = {
      */
     [RUN_KEY]?: Record<string, any>;
 };
+export interface StoredMessageData {
+    content: string;
+    role: string | undefined;
+    additional_kwargs?: Record<string, any>;
+}
+export interface StoredMessage {
+    type: string;
+    data: StoredMessageData;
+}
 export type MessageType = "human" | "ai" | "generic" | "system";
 export declare abstract class BaseChatMessage {
     /** The text of the message. */
@@ -43,6 +52,7 @@ export declare abstract class BaseChatMessage {
     /** The type of the message. */
     abstract _getType(): MessageType;
     constructor(text: string);
+    toJSON(): StoredMessage;
 }
 export declare class HumanChatMessage extends BaseChatMessage {
     _getType(): MessageType;
@@ -86,6 +96,8 @@ export type AgentStep = {
     observation: string;
 };
 export type ChainValues = Record<string, any>;
+export type RunInputs = Record<string, any>;
+export type RunOutputs = Record<string, any>;
 /**
  * Base Index class. All indexes should extend this class.
  */
@@ -110,4 +122,11 @@ export declare abstract class BaseCache<T = Generation[]> {
 export declare abstract class BaseFileStore {
     abstract readFile(path: string): Promise<string>;
     abstract writeFile(path: string, contents: string): Promise<void>;
+}
+export declare abstract class BaseEntityStore {
+    abstract get(key: string, defaultValue?: string): Promise<string | undefined>;
+    abstract set(key: string, value?: string): Promise<void>;
+    abstract delete(key: string): Promise<void>;
+    abstract exists(key: string): Promise<boolean>;
+    abstract clear(): Promise<void>;
 }

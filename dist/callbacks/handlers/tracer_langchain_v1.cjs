@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LangChainTracerV1 = void 0;
 const base_js_1 = require("../../memory/base.cjs");
+const env_js_1 = require("../../util/env.cjs");
 const tracer_js_1 = require("./tracer.cjs");
 class LangChainTracerV1 extends tracer_js_1.BaseTracer {
     constructor() {
@@ -16,10 +17,7 @@ class LangChainTracerV1 extends tracer_js_1.BaseTracer {
             enumerable: true,
             configurable: true,
             writable: true,
-            value: (typeof process !== "undefined"
-                ? // eslint-disable-next-line no-process-env
-                    process.env?.LANGCHAIN_ENDPOINT
-                : undefined) || "http://localhost:1984"
+            value: (0, env_js_1.getEnvironmentVariable)("LANGCHAIN_ENDPOINT") || "http://localhost:1984"
         });
         Object.defineProperty(this, "headers", {
             enumerable: true,
@@ -35,10 +33,9 @@ class LangChainTracerV1 extends tracer_js_1.BaseTracer {
             writable: true,
             value: void 0
         });
-        // eslint-disable-next-line no-process-env
-        if (typeof process !== "undefined" && process.env?.LANGCHAIN_API_KEY) {
-            // eslint-disable-next-line no-process-env
-            this.headers["x-api-key"] = process.env?.LANGCHAIN_API_KEY;
+        const apiKey = (0, env_js_1.getEnvironmentVariable)("LANGCHAIN_API_KEY");
+        if (apiKey) {
+            this.headers["x-api-key"] = apiKey;
         }
     }
     async newSession(sessionName) {

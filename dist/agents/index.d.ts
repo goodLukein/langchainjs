@@ -10,3 +10,5 @@ export { initializeAgentExecutor, initializeAgentExecutorWithOptions, Initialize
 export { ZeroShotAgent, ZeroShotAgentInput, ZeroShotCreatePromptArgs, } from "./mrkl/index.js";
 export { ZeroShotAgentOutputParser } from "./mrkl/outputParser.js";
 export { AgentActionOutputParser, AgentInput, SerializedAgent, SerializedAgentT, SerializedZeroShotAgent, StoppingMethod, } from "./types.js";
+export { StructuredChatAgent, StructuredChatAgentInput, StructuredChatCreatePromptArgs, } from "./structured_chat/index.js";
+export { StructuredChatOutputParser, StructuredChatOutputParserWithRetries, } from "./structured_chat/outputParser.js";

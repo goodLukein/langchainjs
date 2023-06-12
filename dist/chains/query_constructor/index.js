@@ -86,7 +86,7 @@ function _getPrompt(documentContents, attributeInfo, allowedComparators, allowed
         outputParser,
     });
 }
-export function loadQueryContstructorChain(opts) {
+export function loadQueryConstructorChain(opts) {
     const prompt = _getPrompt(opts.documentContents, opts.attributeInfo, opts.allowedComparators, opts.allowedOperators, opts.examples);
     return new LLMChain({
         llm: opts.llm,

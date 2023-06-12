@@ -11,6 +11,7 @@ export interface SqlDatabaseChainInput extends ChainInputs {
     topK?: number;
     inputKey?: string;
     outputKey?: string;
+    sqlOutputKey?: string;
     prompt?: PromptTemplate;
 }
 export declare class SqlDatabaseChain extends BaseChain {
@@ -20,6 +21,7 @@ export declare class SqlDatabaseChain extends BaseChain {
     topK: number;
     inputKey: string;
     outputKey: string;
+    sqlOutputKey: string | undefined;
     returnDirect: boolean;
     constructor(fields: SqlDatabaseChainInput);
     /** @ignore */

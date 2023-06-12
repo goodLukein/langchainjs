@@ -25,6 +25,7 @@ export { OpenAICallOptions, AzureOpenAIInput, OpenAIInput };
  */
 export declare class OpenAI extends BaseLLM implements OpenAIInput, AzureOpenAIInput {
     CallOptions: OpenAICallOptions;
+    get callKeys(): (keyof OpenAICallOptions)[];
     temperature: number;
     maxTokens: number;
     topP: number;
@@ -112,8 +113,8 @@ export declare class OpenAI extends BaseLLM implements OpenAIInput, AzureOpenAII
     /**
      * Call out to OpenAI's endpoint with k unique prompts
      *
-     * @param prompts - The prompts to pass into the model.
-     * @param [stop] - Optional list of stop words to use when generating.
+     * @param [prompts] - The prompts to pass into the model.
+     * @param [options] - Optional list of stop words to use when generating.
      * @param [runManager] - Optional callback manager to use when generating.
      *
      * @returns The full LLM output.
@@ -125,7 +126,7 @@ export declare class OpenAI extends BaseLLM implements OpenAIInput, AzureOpenAII
      * const response = await openai.generate(["Tell me a joke."]);
      * ```
      */
-    _generate(prompts: string[], stopOrOptions?: string[] | this["CallOptions"], runManager?: CallbackManagerForLLMRun): Promise<LLMResult>;
+    _generate(prompts: string[], options: this["ParsedCallOptions"], runManager?: CallbackManagerForLLMRun): Promise<LLMResult>;
     /** @ignore */
     completionWithRetry(request: CreateCompletionRequest, options?: StreamingAxiosConfiguration): Promise<CreateCompletionResponse>;
     _llmType(): string;
@@ -137,10 +138,13 @@ export declare class OpenAI extends BaseLLM implements OpenAIInput, AzureOpenAII
 export declare class PromptLayerOpenAI extends OpenAI {
     promptLayerApiKey?: string;
     plTags?: string[];
+    returnPromptLayerId?: boolean;
     constructor(fields?: ConstructorParameters<typeof OpenAI>[0] & {
         promptLayerApiKey?: string;
         plTags?: string[];
+        returnPromptLayerId?: boolean;
     });
     completionWithRetry(request: CreateCompletionRequest, options?: StreamingAxiosConfiguration): Promise<CreateCompletionResponse>;
+    _generate(prompts: string[], options: this["ParsedCallOptions"], runManager?: CallbackManagerForLLMRun): Promise<LLMResult>;
 }
 export { OpenAIChat, PromptLayerOpenAIChat } from "./openai-chat.js";

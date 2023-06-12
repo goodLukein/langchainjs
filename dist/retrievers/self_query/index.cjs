@@ -61,7 +61,7 @@ class SelfQueryRetriever extends index_js_2.BaseRetriever {
         const { structuredQueryTranslator } = opts;
         const allowedComparators = opts.allowedComparators ?? structuredQueryTranslator.allowedComparators;
         const allowedOperators = opts.allowedOperators ?? structuredQueryTranslator.allowedOperators;
-        const llmChain = (0, index_js_1.loadQueryContstructorChain)({
+        const llmChain = (0, index_js_1.loadQueryConstructorChain)({
             llm: opts.llm,
             documentContents: opts.documentContents,
             attributeInfo: opts.attributeInfo,

@@ -118,6 +118,10 @@ export class BaseChain extends BaseLangChain {
                 const { VectorDBQAChain } = await import("./vector_db_qa.js");
                 return VectorDBQAChain.deserialize(data, values);
             }
+            case "api_chain": {
+                const { APIChain } = await import("./api/api_chain.js");
+                return APIChain.deserialize(data);
+            }
             default:
                 throw new Error(`Invalid prompt type in config: ${data._type}`);
         }
