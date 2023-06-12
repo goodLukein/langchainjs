@@ -1,8 +1,7 @@
-import { loadQueryConstructorChain, } from "../../chains/query_constructor/index.js";
+import { loadQueryContstructorChain, } from "../../chains/query_constructor/index.js";
 import { BaseRetriever } from "../../schema/index.js";
-import { FunctionalTranslator } from "./functional.js";
-import { BaseTranslator, BasicTranslator } from "./base.js";
-export { BaseTranslator, BasicTranslator, FunctionalTranslator };
+import { BaseTranslator, BasicTranslator } from "./translator.js";
+export { BaseTranslator, BasicTranslator };
 export class SelfQueryRetriever extends BaseRetriever {
     constructor(options) {
         super();
@@ -54,20 +53,21 @@ export class SelfQueryRetriever extends BaseRetriever {
             return this.vectorStore.similaritySearch(query, this.searchParams?.k, this.searchParams?.filter);
         }
     }
-    static fromLLM(options) {
-        const { structuredQueryTranslator, allowedComparators, allowedOperators, llm, documentContents, attributeInfo, examples, vectorStore, ...rest } = options;
-        const llmChain = loadQueryConstructorChain({
-            llm,
-            documentContents,
-            attributeInfo,
-            examples,
-            allowedComparators: allowedComparators ?? structuredQueryTranslator.allowedComparators,
-            allowedOperators: allowedOperators ?? structuredQueryTranslator.allowedOperators,
+    static fromLLM(opts) {
+        const { structuredQueryTranslator } = opts;
+        const allowedComparators = opts.allowedComparators ?? structuredQueryTranslator.allowedComparators;
+        const allowedOperators = opts.allowedOperators ?? structuredQueryTranslator.allowedOperators;
+        const llmChain = loadQueryContstructorChain({
+            llm: opts.llm,
+            documentContents: opts.documentContents,
+            attributeInfo: opts.attributeInfo,
+            examples: opts.examples,
+            allowedComparators,
+            allowedOperators,
         });
         return new SelfQueryRetriever({
-            ...rest,
+            vectorStore: opts.vectorStore,
             llmChain,
-            vectorStore,
             structuredQueryTranslator,
         });
     }

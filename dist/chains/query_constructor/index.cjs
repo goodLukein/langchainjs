@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.loadQueryConstructorChain = exports.formatAttributeInfo = exports.StructuredQueryOutputParser = exports.EXAMPLE_PROMPT = exports.DEFAULT_SUFFIX = exports.DEFAULT_SCHEMA = exports.DEFAULT_PREFIX = exports.DEFAULT_EXAMPLES = exports.QueryTransformer = void 0;
+exports.loadQueryContstructorChain = exports.formatAttributeInfo = exports.StructuredQueryOutputParser = exports.EXAMPLE_PROMPT = exports.DEFAULT_SUFFIX = exports.DEFAULT_SCHEMA = exports.DEFAULT_PREFIX = exports.DEFAULT_EXAMPLES = exports.QueryTransformer = void 0;
 const zod_1 = require("zod");
 const parser_js_1 = require("./parser.cjs");
 Object.defineProperty(exports, "QueryTransformer", { enumerable: true, get: function () { return parser_js_1.QueryTransformer; } });
@@ -95,11 +95,11 @@ function _getPrompt(documentContents, attributeInfo, allowedComparators, allowed
         outputParser,
     });
 }
-function loadQueryConstructorChain(opts) {
+function loadQueryContstructorChain(opts) {
     const prompt = _getPrompt(opts.documentContents, opts.attributeInfo, opts.allowedComparators, opts.allowedOperators, opts.examples);
     return new llm_chain_js_1.LLMChain({
         llm: opts.llm,
         prompt,
     });
 }
-exports.loadQueryConstructorChain = loadQueryConstructorChain;
+exports.loadQueryContstructorChain = loadQueryContstructorChain;

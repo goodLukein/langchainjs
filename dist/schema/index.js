@@ -17,15 +17,6 @@ export class BaseChatMessage {
         });
         this.text = text;
     }
-    toJSON() {
-        return {
-            type: this._getType(),
-            data: {
-                content: this.text,
-                role: "role" in this ? this.role : undefined,
-            },
-        };
-    }
 }
 export class HumanChatMessage extends BaseChatMessage {
     _getType() {
@@ -80,6 +71,4 @@ export class BaseListChatMessageHistory {
 export class BaseCache {
 }
 export class BaseFileStore {
-}
-export class BaseEntityStore {
 }

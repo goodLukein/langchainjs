@@ -11,6 +11,12 @@ Chat History:
 {chat_history}
 Follow Up Input: {question}
 Standalone question:`;
+const qa_template = `Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
+
+{context}
+
+Question: {question}
+Helpful Answer:`;
 class ConversationalRetrievalQAChain extends base_js_1.BaseChain {
     get inputKeys() {
         return [this.inputKey, this.chatHistoryKey];
@@ -63,34 +69,16 @@ class ConversationalRetrievalQAChain extends base_js_1.BaseChain {
         this.returnSourceDocuments =
             fields.returnSourceDocuments ?? this.returnSourceDocuments;
     }
-    static getChatHistoryString(chatHistory) {
-        if (Array.isArray(chatHistory)) {
-            return chatHistory
-                .map((chatMessage) => {
-                if (chatMessage._getType() === "human") {
-                    return `Human: ${chatMessage.text}`;
-                }
-                else if (chatMessage._getType() === "ai") {
-                    return `Assistant: ${chatMessage.text}`;
-                }
-                else {
-                    return `${chatMessage.text}`;
-                }
-            })
-                .join("\n");
-        }
-        return chatHistory;
-    }
     /** @ignore */
     async _call(values, runManager) {
         if (!(this.inputKey in values)) {
             throw new Error(`Question key ${this.inputKey} not found.`);
         }
         if (!(this.chatHistoryKey in values)) {
-            throw new Error(`Chat history key ${this.chatHistoryKey} not found.`);
+            throw new Error(`chat history key ${this.inputKey} not found.`);
         }
         const question = values[this.inputKey];
-        const chatHistory = ConversationalRetrievalQAChain.getChatHistoryString(values[this.chatHistoryKey]);
+        const chatHistory = values[this.chatHistoryKey];
         let newQuestion = question;
         if (chatHistory.length > 0) {
             const result = await this.questionGeneratorChain.call({
@@ -130,19 +118,13 @@ class ConversationalRetrievalQAChain extends base_js_1.BaseChain {
         throw new Error("Not implemented.");
     }
     static fromLLM(llm, retriever, options = {}) {
-        const { questionGeneratorTemplate, qaTemplate, qaChainOptions = {
-            type: "stuff",
-            prompt: qaTemplate
-                ? prompt_js_1.PromptTemplate.fromTemplate(qaTemplate)
-                : undefined,
-        }, questionGeneratorChainOptions, verbose, ...rest } = options;
-        const qaChain = (0, load_js_1.loadQAChain)(llm, qaChainOptions);
-        const questionGeneratorChainPrompt = prompt_js_1.PromptTemplate.fromTemplate(questionGeneratorChainOptions?.template ??
-            questionGeneratorTemplate ??
-            question_generator_template);
+        const { questionGeneratorTemplate, qaTemplate, verbose, ...rest } = options;
+        const question_generator_prompt = prompt_js_1.PromptTemplate.fromTemplate(questionGeneratorTemplate || question_generator_template);
+        const qa_prompt = prompt_js_1.PromptTemplate.fromTemplate(qaTemplate || qa_template);
+        const qaChain = (0, load_js_1.loadQAStuffChain)(llm, { prompt: qa_prompt, verbose });
         const questionGeneratorChain = new llm_chain_js_1.LLMChain({
-            prompt: questionGeneratorChainPrompt,
-            llm: questionGeneratorChainOptions?.llm ?? llm,
+            prompt: question_generator_prompt,
+            llm,
             verbose,
         });
         const instance = new this({

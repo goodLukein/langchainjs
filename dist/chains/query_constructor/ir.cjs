@@ -8,7 +8,6 @@ exports.Operators = {
 };
 exports.Comparators = {
     eq: "eq",
-    ne: "ne",
     lt: "lt",
     gt: "gt",
     lte: "lte",

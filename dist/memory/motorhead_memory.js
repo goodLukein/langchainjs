@@ -1,16 +1,15 @@
 import { BaseChatMemory } from "./chat_memory.js";
 import { getBufferString, getInputValue, } from "./base.js";
 import { AsyncCaller } from "../util/async_caller.js";
-const MANAGED_URL = "https://api.getmetal.io/v1/motorhead";
 export class MotorheadMemory extends BaseChatMemory {
     constructor(fields) {
-        const { sessionId, url, motorheadURL, memoryKey, timeout, returnMessages, inputKey, outputKey, chatHistory, apiKey, clientId, ...rest } = fields;
+        const { sessionId, motorheadURL, memoryKey, timeout, returnMessages, inputKey, outputKey, chatHistory, ...rest } = fields;
         super({ returnMessages, inputKey, outputKey, chatHistory });
-        Object.defineProperty(this, "url", {
+        Object.defineProperty(this, "motorheadURL", {
             enumerable: true,
             configurable: true,
             writable: true,
-            value: MANAGED_URL
+            value: "localhost:8080"
         });
         Object.defineProperty(this, "timeout", {
             enumerable: true,
@@ -42,48 +41,21 @@ export class MotorheadMemory extends BaseChatMemory {
             writable: true,
             value: void 0
         });
-        // Managed Params
-        Object.defineProperty(this, "apiKey", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "clientId", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
         this.caller = new AsyncCaller(rest);
         this.sessionId = sessionId;
-        this.url = url ?? motorheadURL ?? this.url;
+        this.motorheadURL = motorheadURL ?? this.motorheadURL;
         this.memoryKey = memoryKey ?? this.memoryKey;
         this.timeout = timeout ?? this.timeout;
-        this.apiKey = apiKey;
-        this.clientId = clientId;
     }
     get memoryKeys() {
         return [this.memoryKey];
     }
-    _getHeaders() {
-        const isManaged = this.url === MANAGED_URL;
-        const headers = {
-            "Content-Type": "application/json",
-        };
-        if (isManaged && !(this.apiKey && this.clientId)) {
-            throw new Error("apiKey and clientId are required for managed motorhead. Visit https://getmetal.io to get your keys.");
-        }
-        if (isManaged && this.apiKey && this.clientId) {
-            headers["x-metal-api-key"] = this.apiKey;
-            headers["x-metal-client-id"] = this.clientId;
-        }
-        return headers;
-    }
     async init() {
-        const res = await this.caller.call(fetch, `${this.url}/sessions/${this.sessionId}/memory`, {
+        const res = await this.caller.call(fetch, `${this.motorheadURL}/sessions/${this.sessionId}/memory`, {
             signal: this.timeout ? AbortSignal.timeout(this.timeout) : undefined,
-            headers: this._getHeaders(),
+            headers: {
+                "Content-Type": "application/json",
+            },
         });
         const { messages = [], context = "NONE" } = await res.json();
         await Promise.all(messages.reverse().map(async (message) => {
@@ -115,7 +87,7 @@ export class MotorheadMemory extends BaseChatMemory {
         const input = getInputValue(inputValues, this.inputKey);
         const output = getInputValue(outputValues, this.outputKey);
         await Promise.all([
-            this.caller.call(fetch, `${this.url}/sessions/${this.sessionId}/memory`, {
+            this.caller.call(fetch, `${this.motorheadURL}/sessions/${this.sessionId}/memory`, {
                 signal: this.timeout ? AbortSignal.timeout(this.timeout) : undefined,
                 method: "POST",
                 body: JSON.stringify({
@@ -124,7 +96,9 @@ export class MotorheadMemory extends BaseChatMemory {
                         { role: "AI", content: `${output}` },
                     ],
                 }),
-                headers: this._getHeaders(),
+                headers: {
+                    "Content-Type": "application/json",
+                },
             }),
             super.saveContext(inputValues, outputValues),
         ]);

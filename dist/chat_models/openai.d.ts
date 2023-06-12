@@ -33,7 +33,6 @@ interface OpenAILLMOutput {
  */
 export declare class ChatOpenAI extends BaseChatModel implements OpenAIChatInput, AzureOpenAIInput {
     CallOptions: OpenAICallOptions;
-    get callKeys(): (keyof OpenAICallOptions)[];
     temperature: number;
     topP: number;
     frequencyPenalty: number;
@@ -110,7 +109,7 @@ export declare class ChatOpenAI extends BaseChatModel implements OpenAIChatInput
         model_name: string;
     };
     /** @ignore */
-    _generate(messages: BaseChatMessage[], options?: this["ParsedCallOptions"], runManager?: CallbackManagerForLLMRun): Promise<ChatResult>;
+    _generate(messages: BaseChatMessage[], stopOrOptions?: string[] | this["CallOptions"], runManager?: CallbackManagerForLLMRun): Promise<ChatResult>;
     getNumTokensFromMessages(messages: BaseChatMessage[]): Promise<{
         totalCount: number;
         countPerMessage: number[];
@@ -120,15 +119,4 @@ export declare class ChatOpenAI extends BaseChatModel implements OpenAIChatInput
     _llmType(): string;
     /** @ignore */
     _combineLLMOutput(...llmOutputs: OpenAILLMOutput[]): OpenAILLMOutput;
-}
-export declare class PromptLayerChatOpenAI extends ChatOpenAI {
-    promptLayerApiKey?: string;
-    plTags?: string[];
-    returnPromptLayerId?: boolean;
-    constructor(fields?: ConstructorParameters<typeof ChatOpenAI>[0] & {
-        promptLayerApiKey?: string;
-        plTags?: string[];
-        returnPromptLayerId?: boolean;
-    });
-    _generate(messages: BaseChatMessage[], options?: string[] | this["CallOptions"], runManager?: CallbackManagerForLLMRun): Promise<ChatResult>;
 }

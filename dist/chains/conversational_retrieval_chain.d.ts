@@ -1,12 +1,11 @@
 import { BaseLanguageModel } from "../base_language/index.js";
 import { SerializedChatVectorDBQAChain } from "./serde.js";
-import { ChainValues, BaseRetriever, BaseChatMessage } from "../schema/index.js";
+import { ChainValues, BaseRetriever } from "../schema/index.js";
 import { BaseChain, ChainInputs } from "./base.js";
 import { LLMChain } from "./llm_chain.js";
-import { QAChainParams } from "./question_answering/load.js";
 import { CallbackManagerForChainRun } from "../callbacks/manager.js";
 export type LoadValues = Record<string, any>;
-export interface ConversationalRetrievalQAChainInput extends ChainInputs {
+export interface ConversationalRetrievalQAChainInput extends Omit<ChainInputs, "memory"> {
     retriever: BaseRetriever;
     combineDocumentsChain: BaseChain;
     questionGeneratorChain: LLMChain;
@@ -23,7 +22,6 @@ export declare class ConversationalRetrievalQAChain extends BaseChain implements
     questionGeneratorChain: LLMChain;
     returnSourceDocuments: boolean;
     constructor(fields: ConversationalRetrievalQAChainInput);
-    static getChatHistoryString(chatHistory: string | BaseChatMessage[]): string;
     /** @ignore */
     _call(values: ChainValues, runManager?: CallbackManagerForChainRun): Promise<ChainValues>;
     _chainType(): string;
@@ -32,14 +30,7 @@ export declare class ConversationalRetrievalQAChain extends BaseChain implements
     static fromLLM(llm: BaseLanguageModel, retriever: BaseRetriever, options?: {
         outputKey?: string;
         returnSourceDocuments?: boolean;
-        /** @deprecated Pass in questionGeneratorChainOptions.template instead */
         questionGeneratorTemplate?: string;
-        /** @deprecated Pass in qaChainOptions.prompt instead */
         qaTemplate?: string;
-        qaChainOptions?: QAChainParams;
-        questionGeneratorChainOptions?: {
-            llm?: BaseLanguageModel;
-            template?: string;
-        };
     } & Omit<ConversationalRetrievalQAChainInput, "retriever" | "combineDocumentsChain" | "questionGeneratorChain">): ConversationalRetrievalQAChain;
 }

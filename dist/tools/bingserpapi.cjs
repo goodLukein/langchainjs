@@ -1,10 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BingSerpAPI = void 0;
-const env_js_1 = require("../util/env.cjs");
 const base_js_1 = require("./base.cjs");
 class BingSerpAPI extends base_js_1.Tool {
-    constructor(apiKey = (0, env_js_1.getEnvironmentVariable)("BingApiKey"), params = {}) {
+    constructor(apiKey = typeof process !== "undefined"
+        ? // eslint-disable-next-line no-process-env
+            process.env?.BingApiKey
+        : undefined, params = {}) {
         super();
         Object.defineProperty(this, "name", {
             enumerable: true,

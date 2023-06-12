@@ -1,7 +1,7 @@
 import { NodeHandler, ASTParser } from "./base.js";
 export class PropertyAssignmentHandler extends NodeHandler {
     async accepts(node) {
-        if (ASTParser.isPropertyAssignment(node)) {
+        if (ASTParser.isProperty(node)) {
             return node;
         }
         else {

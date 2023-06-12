@@ -26,9 +26,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Milvus = void 0;
 const uuid = __importStar(require("uuid"));
 const milvus2_sdk_node_1 = require("@zilliz/milvus2-sdk-node");
+const Milvus_js_1 = require("@zilliz/milvus2-sdk-node/dist/milvus/const/Milvus.js");
+const types_js_1 = require("@zilliz/milvus2-sdk-node/dist/milvus/types.js");
 const base_js_1 = require("./base.cjs");
 const document_js_1 = require("../document.cjs");
-const env_js_1 = require("../util/env.cjs");
 const MILVUS_PRIMARY_FIELD_NAME = "langchain_primaryid";
 const MILVUS_VECTOR_FIELD_NAME = "langchain_vector";
 const MILVUS_TEXT_FIELD_NAME = "langchain_text";
@@ -84,6 +85,24 @@ class Milvus extends base_js_1.VectorStore {
             writable: true,
             value: void 0
         });
+        Object.defineProperty(this, "colMgr", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "idxMgr", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "dataMgr", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
         Object.defineProperty(this, "indexParams", {
             enumerable: true,
             configurable: true,
@@ -123,11 +142,16 @@ class Milvus extends base_js_1.VectorStore {
         this.primaryField = args.primaryField ?? MILVUS_PRIMARY_FIELD_NAME;
         this.vectorField = args.vectorField ?? MILVUS_VECTOR_FIELD_NAME;
         this.fields = [];
-        const url = args.url ?? (0, env_js_1.getEnvironmentVariable)("MILVUS_URL");
+        const url = args.url ??
+            // eslint-disable-next-line no-process-env
+            (typeof process !== "undefined" ? process.env?.MILVUS_URL : undefined);
         if (!url) {
             throw new Error("Milvus URL address is not provided.");
         }
         this.client = new milvus2_sdk_node_1.MilvusClient(url, args.ssl, args.username, args.password);
+        this.colMgr = this.client.collectionManager;
+        this.idxMgr = this.client.indexManager;
+        this.dataMgr = this.client.dataManager;
     }
     async addDocuments(documents) {
         const texts = documents.map(({ pageContent }) => pageContent);
@@ -178,35 +202,35 @@ class Milvus extends base_js_1.VectorStore {
             });
             insertDatas.push(data);
         }
-        const insertResp = await this.client.insert({
+        const insertResp = await this.dataMgr.insert({
             collection_name: this.collectionName,
             fields_data: insertDatas,
         });
-        if (insertResp.status.error_code !== milvus2_sdk_node_1.ErrorCode.SUCCESS) {
+        if (insertResp.status.error_code !== types_js_1.ErrorCode.SUCCESS) {
             throw new Error(`Error inserting data: ${JSON.stringify(insertResp)}`);
         }
-        await this.client.flushSync({ collection_names: [this.collectionName] });
+        await this.dataMgr.flushSync({ collection_names: [this.collectionName] });
     }
     async similaritySearchVectorWithScore(query, k) {
-        const hasColResp = await this.client.hasCollection({
+        const hasColResp = await this.colMgr.hasCollection({
             collection_name: this.collectionName,
         });
-        if (hasColResp.status.error_code !== milvus2_sdk_node_1.ErrorCode.SUCCESS) {
+        if (hasColResp.status.error_code !== types_js_1.ErrorCode.SUCCESS) {
             throw new Error(`Error checking collection: ${hasColResp}`);
         }
         if (hasColResp.value === false) {
             throw new Error(`Collection not found: ${this.collectionName}, please create collection before search.`);
         }
         await this.grabCollectionFields();
-        const loadResp = await this.client.loadCollectionSync({
+        const loadResp = await this.colMgr.loadCollectionSync({
             collection_name: this.collectionName,
         });
-        if (loadResp.error_code !== milvus2_sdk_node_1.ErrorCode.SUCCESS) {
+        if (loadResp.error_code !== types_js_1.ErrorCode.SUCCESS) {
             throw new Error(`Error loading collection: ${loadResp}`);
         }
         // clone this.field and remove vectorField
         const outputFields = this.fields.filter((field) => field !== this.vectorField);
-        const searchResp = await this.client.search({
+        const searchResp = await this.dataMgr.search({
             collection_name: this.collectionName,
             search_params: {
                 anns_field: this.vectorField,
@@ -215,10 +239,10 @@ class Milvus extends base_js_1.VectorStore {
                 params: this.indexSearchParams,
             },
             output_fields: outputFields,
-            vector_type: milvus2_sdk_node_1.DataType.FloatVector,
+            vector_type: Milvus_js_1.DataType.FloatVector,
             vectors: [query],
         });
-        if (searchResp.status.error_code !== milvus2_sdk_node_1.ErrorCode.SUCCESS) {
+        if (searchResp.status.error_code !== types_js_1.ErrorCode.SUCCESS) {
             throw new Error(`Error searching data: ${JSON.stringify(searchResp)}`);
         }
         const results = [];
@@ -245,10 +269,10 @@ class Milvus extends base_js_1.VectorStore {
         return results;
     }
     async ensureCollection(vectors, documents) {
-        const hasColResp = await this.client.hasCollection({
+        const hasColResp = await this.colMgr.hasCollection({
             collection_name: this.collectionName,
         });
-        if (hasColResp.status.error_code !== milvus2_sdk_node_1.ErrorCode.SUCCESS) {
+        if (hasColResp.status.error_code !== types_js_1.ErrorCode.SUCCESS) {
             throw new Error(`Error checking collection: ${JSON.stringify(hasColResp, null, 2)}`);
         }
         if (hasColResp.value === false) {
@@ -267,20 +291,20 @@ class Milvus extends base_js_1.VectorStore {
         fieldList.push({
             name: this.primaryField,
             description: "Primary key",
-            data_type: milvus2_sdk_node_1.DataType.Int64,
+            data_type: Milvus_js_1.DataType.Int64,
             is_primary_key: true,
             autoID: this.autoId,
         }, {
             name: this.textField,
             description: "Text field",
-            data_type: milvus2_sdk_node_1.DataType.VarChar,
+            data_type: Milvus_js_1.DataType.VarChar,
             type_params: {
                 max_length: getTextFieldMaxLength(documents).toString(),
             },
         }, {
             name: this.vectorField,
             description: "Vector field",
-            data_type: milvus2_sdk_node_1.DataType.FloatVector,
+            data_type: Milvus_js_1.DataType.FloatVector,
             type_params: {
                 dim: getVectorFieldDim(vectors).toString(),
             },
@@ -290,15 +314,15 @@ class Milvus extends base_js_1.VectorStore {
                 this.fields.push(field.name);
             }
         });
-        const createRes = await this.client.createCollection({
+        const createRes = await this.colMgr.createCollection({
             collection_name: this.collectionName,
             fields: fieldList,
         });
-        if (createRes.error_code !== milvus2_sdk_node_1.ErrorCode.SUCCESS) {
+        if (createRes.error_code !== types_js_1.ErrorCode.SUCCESS) {
             console.log(createRes);
             throw new Error(`Failed to create collection: ${createRes}`);
         }
-        await this.client.createIndex({
+        await this.idxMgr.createIndex({
             collection_name: this.collectionName,
             field_name: this.vectorField,
             extra_params: this.indexCreateParams,
@@ -314,7 +338,7 @@ class Milvus extends base_js_1.VectorStore {
             this.fields.length > 0) {
             return;
         }
-        const desc = await this.client.describeCollection({
+        const desc = await this.colMgr.describeCollection({
             collection_name: this.collectionName,
         });
         desc.schema.fields.forEach((field) => {
@@ -328,11 +352,11 @@ class Milvus extends base_js_1.VectorStore {
             if (field.is_primary_key) {
                 this.primaryField = field.name;
             }
-            const dtype = milvus2_sdk_node_1.DataTypeMap[field.data_type.toLowerCase()];
-            if (dtype === milvus2_sdk_node_1.DataType.FloatVector || dtype === milvus2_sdk_node_1.DataType.BinaryVector) {
+            const dtype = Milvus_js_1.DataTypeMap[field.data_type.toLowerCase()];
+            if (dtype === Milvus_js_1.DataType.FloatVector || dtype === Milvus_js_1.DataType.BinaryVector) {
                 this.vectorField = field.name;
             }
-            if (dtype === milvus2_sdk_node_1.DataType.VarChar && field.name === MILVUS_TEXT_FIELD_NAME) {
+            if (dtype === Milvus_js_1.DataType.VarChar && field.name === MILVUS_TEXT_FIELD_NAME) {
                 this.textField = field.name;
             }
         });
@@ -353,9 +377,6 @@ class Milvus extends base_js_1.VectorStore {
         const args = {
             collectionName: dbConfig?.collectionName || genCollectionName(),
             url: dbConfig?.url,
-            ssl: dbConfig?.ssl,
-            username: dbConfig?.username,
-            password: dbConfig?.password,
         };
         const instance = new this(embeddings, args);
         await instance.addDocuments(docs);
@@ -400,7 +421,7 @@ function createFieldTypeForMetadata(documents) {
             fields.push({
                 name: key,
                 description: `Metadata String field`,
-                data_type: milvus2_sdk_node_1.DataType.VarChar,
+                data_type: Milvus_js_1.DataType.VarChar,
                 type_params: {
                     max_length: textFieldMaxLength.toString(),
                 },
@@ -410,14 +431,14 @@ function createFieldTypeForMetadata(documents) {
             fields.push({
                 name: key,
                 description: `Metadata Number field`,
-                data_type: milvus2_sdk_node_1.DataType.Float,
+                data_type: Milvus_js_1.DataType.Float,
             });
         }
         else if (type === "boolean") {
             fields.push({
                 name: key,
                 description: `Metadata Boolean field`,
-                data_type: milvus2_sdk_node_1.DataType.Bool,
+                data_type: Milvus_js_1.DataType.Bool,
             });
         }
         else if (value === null) {
@@ -429,7 +450,7 @@ function createFieldTypeForMetadata(documents) {
                 fields.push({
                     name: key,
                     description: `Metadata JSON field`,
-                    data_type: milvus2_sdk_node_1.DataType.VarChar,
+                    data_type: Milvus_js_1.DataType.VarChar,
                     type_params: {
                         max_length: jsonFieldMaxLength.toString(),
                     },

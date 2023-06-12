@@ -19,32 +19,14 @@ import { ASTParser } from "./expression_type_handlers/base.js";
  *      ]
  */
 export class ExpressionParser extends BaseOutputParser {
-    constructor() {
-        super(...arguments);
-        Object.defineProperty(this, "parser", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-    }
-    /**
-     * We should separate loading the parser into its own function
-     * because loading the grammar takes some time. If there are
-     * multiple concurrent parse calls, it's faster to just wait
-     * for building the parser once and then use it for all
-     * subsequent calls. See expression.test.ts for an example.
-     */
-    async ensureParser() {
-        if (!this.parser) {
-            this.parser = await ASTParser.importASTParser();
-        }
-    }
     async parse(text) {
-        await this.ensureParser();
+        const parse = await ASTParser.importASTParser();
         try {
-            const program = this.parser(text);
-            const node = program.body;
+            const program = parse(text);
+            if (program.body.length > 1) {
+                throw new Error(`Expected 1 statement, got ${program.body.length}`);
+            }
+            const [node] = program.body;
             if (!ASTParser.isExpressionStatement(node)) {
                 throw new Error(`Expected ExpressionStatement, got ${node.type}`);
             }

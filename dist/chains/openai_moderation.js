@@ -2,7 +2,6 @@ import { Configuration, OpenAIApi, } from "openai";
 import { BaseChain } from "./base.js";
 import fetchAdapter from "../util/axios-fetch-adapter.js";
 import { AsyncCaller } from "../util/async_caller.js";
-import { getEnvironmentVariable } from "../util/env.js";
 export class OpenAIModerationChain extends BaseChain {
     constructor(fields) {
         super(fields);
@@ -56,7 +55,9 @@ export class OpenAIModerationChain extends BaseChain {
         });
         this.throwError = fields?.throwError ?? false;
         this.openAIApiKey =
-            fields?.openAIApiKey ?? getEnvironmentVariable("OPENAI_API_KEY");
+            fields?.openAIApiKey ??
+                // eslint-disable-next-line no-process-env
+                (typeof process !== "undefined" ? process.env.OPENAI_API_KEY : undefined);
         if (!this.openAIApiKey) {
             throw new Error("OpenAI API key not found");
         }

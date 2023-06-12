@@ -50,7 +50,6 @@ export declare class TimeWeightedVectorStoreRetriever extends BaseRetriever {
      * @param fields - The fields required for initializing the TimeWeightedVectorStoreRetriever
      */
     constructor(fields: TimeWeightedVectorStoreRetrieverFields);
-    getMemoryStream(): Document[];
     /**
      * Get relevant documents based on time-weighted relevance
      * @param query - The query to search for

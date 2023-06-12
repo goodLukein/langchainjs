@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OpenAIEmbeddings = void 0;
 const openai_1 = require("openai");
-const env_js_1 = require("../util/env.cjs");
+const browser_or_node_1 = require("browser-or-node");
 const axios_fetch_adapter_js_1 = __importDefault(require("../util/axios-fetch-adapter.cjs"));
 const chunk_js_1 = require("../util/chunk.cjs");
 const base_js_1 = require("./base.cjs");
@@ -72,20 +72,37 @@ class OpenAIEmbeddings extends base_js_1.Embeddings {
             writable: true,
             value: void 0
         });
-        const apiKey = fields?.openAIApiKey ?? (0, env_js_1.getEnvironmentVariable)("OPENAI_API_KEY");
+        const apiKey = fields?.openAIApiKey ??
+            (typeof process !== "undefined"
+                ? // eslint-disable-next-line no-process-env
+                    process.env?.OPENAI_API_KEY
+                : undefined);
         const azureApiKey = fields?.azureOpenAIApiKey ??
-            (0, env_js_1.getEnvironmentVariable)("AZURE_OPENAI_API_KEY");
+            (typeof process !== "undefined"
+                ? // eslint-disable-next-line no-process-env
+                    process.env?.AZURE_OPENAI_API_KEY
+                : undefined);
         if (!azureApiKey && !apiKey) {
             throw new Error("(Azure) OpenAI API key not found");
         }
         const azureApiInstanceName = fields?.azureOpenAIApiInstanceName ??
-            (0, env_js_1.getEnvironmentVariable)("AZURE_OPENAI_API_INSTANCE_NAME");
+            (typeof process !== "undefined"
+                ? // eslint-disable-next-line no-process-env
+                    process.env?.AZURE_OPENAI_API_INSTANCE_NAME
+                : undefined);
         const azureApiDeploymentName = (fields?.azureOpenAIApiEmbeddingsDeploymentName ||
             fields?.azureOpenAIApiDeploymentName) ??
-            ((0, env_js_1.getEnvironmentVariable)("AZURE_OPENAI_API_EMBEDDINGS_DEPLOYMENT_NAME") ||
-                (0, env_js_1.getEnvironmentVariable)("AZURE_OPENAI_API_DEPLOYMENT_NAME"));
+            (typeof process !== "undefined"
+                ? // eslint-disable-next-line no-process-env
+                    process.env?.AZURE_OPENAI_API_EMBEDDINGS_DEPLOYMENT_NAME ||
+                        // eslint-disable-next-line no-process-env
+                        process.env?.AZURE_OPENAI_API_DEPLOYMENT_NAME
+                : undefined);
         const azureApiVersion = fields?.azureOpenAIApiVersion ??
-            (0, env_js_1.getEnvironmentVariable)("AZURE_OPENAI_API_VERSION");
+            (typeof process !== "undefined"
+                ? // eslint-disable-next-line no-process-env
+                    process.env?.AZURE_OPENAI_API_VERSION
+                : undefined);
         this.modelName = fields?.modelName ?? this.modelName;
         this.batchSize = fields?.batchSize ?? this.batchSize;
         this.stripNewLines = fields?.stripNewLines ?? this.stripNewLines;
@@ -142,7 +159,7 @@ class OpenAIEmbeddings extends base_js_1.Embeddings {
                 basePath: endpoint,
                 baseOptions: {
                     timeout: this.timeout,
-                    adapter: (0, env_js_1.isNode)() ? undefined : axios_fetch_adapter_js_1.default,
+                    adapter: browser_or_node_1.isNode ? undefined : axios_fetch_adapter_js_1.default,
                     ...this.clientConfig.baseOptions,
                 },
             });

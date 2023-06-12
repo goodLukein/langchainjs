@@ -1,5 +1,4 @@
 import { chunkArray } from "../util/chunk.js";
-import { getEnvironmentVariable } from "../util/env.js";
 import { Embeddings } from "./base.js";
 /**
  * A class for generating embeddings using the Cohere API.
@@ -35,7 +34,11 @@ export class CohereEmbeddings extends Embeddings {
             writable: true,
             value: void 0
         });
-        const apiKey = fields?.apiKey || getEnvironmentVariable("COHERE_API_KEY");
+        const apiKey = fields?.apiKey ||
+            (typeof process !== "undefined"
+                ? // eslint-disable-next-line no-process-env
+                    process.env?.COHERE_API_KEY
+                : undefined);
         if (!apiKey) {
             throw new Error("Cohere API key not found");
         }

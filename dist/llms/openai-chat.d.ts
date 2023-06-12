@@ -3,7 +3,6 @@ import { AzureOpenAIInput, OpenAICallOptions, OpenAIChatInput } from "../types/o
 import type { StreamingAxiosConfiguration } from "../util/axios-types.js";
 import { BaseLLMParams, LLM } from "./base.js";
 import { CallbackManagerForLLMRun } from "../callbacks/manager.js";
-import { LLMResult } from "../schema/index.js";
 export { OpenAICallOptions, OpenAIChatInput, AzureOpenAIInput };
 /**
  * Wrapper around OpenAI large language models that use the Chat endpoint.
@@ -29,7 +28,6 @@ export { OpenAICallOptions, OpenAIChatInput, AzureOpenAIInput };
  */
 export declare class OpenAIChat extends LLM implements OpenAIChatInput, AzureOpenAIInput {
     CallOptions: OpenAICallOptions;
-    get callKeys(): (keyof OpenAICallOptions)[];
     temperature: number;
     topP: number;
     frequencyPenalty: number;
@@ -106,7 +104,7 @@ export declare class OpenAIChat extends LLM implements OpenAIChatInput, AzureOpe
     };
     private formatMessages;
     /** @ignore */
-    _call(prompt: string, options: this["ParsedCallOptions"], runManager?: CallbackManagerForLLMRun): Promise<string>;
+    _call(prompt: string, stopOrOptions?: string[] | this["CallOptions"], runManager?: CallbackManagerForLLMRun): Promise<string>;
     /** @ignore */
     completionWithRetry(request: CreateChatCompletionRequest, options?: StreamingAxiosConfiguration): Promise<CreateChatCompletionResponse>;
     _llmType(): string;
@@ -117,12 +115,9 @@ export declare class OpenAIChat extends LLM implements OpenAIChatInput, AzureOpe
 export declare class PromptLayerOpenAIChat extends OpenAIChat {
     promptLayerApiKey?: string;
     plTags?: string[];
-    returnPromptLayerId?: boolean;
     constructor(fields?: ConstructorParameters<typeof OpenAIChat>[0] & {
         promptLayerApiKey?: string;
         plTags?: string[];
-        returnPromptLayerId?: boolean;
     });
     completionWithRetry(request: CreateChatCompletionRequest, options?: StreamingAxiosConfiguration): Promise<CreateChatCompletionResponse>;
-    _generate(prompts: string[], options: this["ParsedCallOptions"], runManager?: CallbackManagerForLLMRun): Promise<LLMResult>;
 }

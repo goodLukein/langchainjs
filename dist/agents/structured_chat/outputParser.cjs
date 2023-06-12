@@ -67,9 +67,9 @@ class StructuredChatOutputParserWithRetries extends types_js_1.AgentActionOutput
             fields?.baseParser ?? new StructuredChatOutputParser(this.toolNames);
         this.outputFixingParser = fields?.outputFixingParser;
     }
-    async parse(text, callbacks) {
+    async parse(text) {
         if (this.outputFixingParser !== undefined) {
-            return this.outputFixingParser.parse(text, callbacks);
+            return this.outputFixingParser.parse(text);
         }
         return this.baseParser.parse(text);
     }

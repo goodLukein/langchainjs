@@ -15,20 +15,7 @@ class MultiRetrievalQAChain extends multi_route_js_1.MultiRouteChain {
     get outputKeys() {
         return ["result"];
     }
-    /**
-     * @deprecated Use `fromRetrieversAndPrompts` instead
-     */
     static fromRetrievers(llm, retrieverNames, retrieverDescriptions, retrievers, retrieverPrompts, defaults, options) {
-        return MultiRetrievalQAChain.fromLLMAndRetrievers(llm, {
-            retrieverNames,
-            retrieverDescriptions,
-            retrievers,
-            retrieverPrompts,
-            defaults,
-            multiRetrievalChainOpts: options,
-        });
-    }
-    static fromLLMAndRetrievers(llm, { retrieverNames, retrieverDescriptions, retrievers, retrieverPrompts, defaults, multiRetrievalChainOpts, retrievalQAChainOpts, }) {
         const { defaultRetriever, defaultPrompt, defaultChain } = defaults ?? {};
         if (defaultPrompt && !defaultRetriever) {
             throw new Error("`default_retriever` must be specified if `default_prompt` is \nprovided. Received only `default_prompt`.");
@@ -60,9 +47,9 @@ class MultiRetrievalQAChain extends multi_route_js_1.MultiRouteChain {
         const routerChain = llm_router_js_1.LLMRouterChain.fromLLM(llm, routerPrompt);
         const prompts = retrieverPrompts ?? retrievers.map(() => null);
         const destinationChains = (0, utils_js_1.zipEntries)(retrieverNames, retrievers, prompts).reduce((acc, [name, retriever, prompt]) => {
-            const opt = retrievalQAChainOpts ?? {};
+            let opt;
             if (prompt) {
-                opt.prompt = prompt;
+                opt = { prompt };
             }
             acc[name] = retrieval_qa_js_1.RetrievalQAChain.fromLLM(llm, retriever, opt);
             return acc;
@@ -73,7 +60,6 @@ class MultiRetrievalQAChain extends multi_route_js_1.MultiRouteChain {
         }
         else if (defaultRetriever) {
             _defaultChain = retrieval_qa_js_1.RetrievalQAChain.fromLLM(llm, defaultRetriever, {
-                ...retrievalQAChainOpts,
                 prompt: defaultPrompt,
             });
         }
@@ -90,10 +76,10 @@ class MultiRetrievalQAChain extends multi_route_js_1.MultiRouteChain {
             });
         }
         return new MultiRetrievalQAChain({
-            ...multiRetrievalChainOpts,
             routerChain,
             destinationChains,
             defaultChain: _defaultChain,
+            ...options,
         });
     }
     _chainType() {

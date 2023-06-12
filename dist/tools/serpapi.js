@@ -1,4 +1,3 @@
-import { getEnvironmentVariable } from "../util/env.js";
 import { Tool } from "./base.js";
 /**
  * Wrapper around SerpAPI.
@@ -6,7 +5,10 @@ import { Tool } from "./base.js";
  * To use, you should have the `serpapi` package installed and the SERPAPI_API_KEY environment variable set.
  */
 export class SerpAPI extends Tool {
-    constructor(apiKey = getEnvironmentVariable("SERPAPI_API_KEY"), params = {}, baseUrl = "https://serpapi.com") {
+    constructor(apiKey = typeof process !== "undefined"
+        ? // eslint-disable-next-line no-process-env
+            process.env?.SERPAPI_API_KEY
+        : undefined, params = {}, baseUrl = "https://serpapi.com") {
         super();
         Object.defineProperty(this, "key", {
             enumerable: true,

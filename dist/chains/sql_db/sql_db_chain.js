@@ -47,12 +47,6 @@ export class SqlDatabaseChain extends BaseChain {
             writable: true,
             value: "result"
         });
-        Object.defineProperty(this, "sqlOutputKey", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: undefined
-        });
         // Whether to return the result of querying the SQL table directly.
         Object.defineProperty(this, "returnDirect", {
             enumerable: true,
@@ -65,7 +59,6 @@ export class SqlDatabaseChain extends BaseChain {
         this.topK = fields.topK ?? this.topK;
         this.inputKey = fields.inputKey ?? this.inputKey;
         this.outputKey = fields.outputKey ?? this.outputKey;
-        this.sqlOutputKey = fields.sqlOutputKey ?? this.sqlOutputKey;
         this.prompt =
             fields.prompt ??
                 getPromptTemplateFromDataSource(this.database.appDataSource);
@@ -93,10 +86,13 @@ export class SqlDatabaseChain extends BaseChain {
             stop: ["\nSQLResult:"],
         };
         await this.verifyNumberOfTokens(inputText, tableInfo);
+        const intermediateStep = [];
         const sqlCommand = await llmChain.predict(llmInputs, runManager?.getChild());
+        intermediateStep.push(sqlCommand);
         let queryResult = "";
         try {
             queryResult = await this.database.appDataSource.query(sqlCommand);
+            intermediateStep.push(queryResult);
         }
         catch (error) {
             console.error(error);
@@ -112,9 +108,6 @@ export class SqlDatabaseChain extends BaseChain {
                 [this.outputKey]: await llmChain.predict(llmInputs, runManager?.getChild()),
             };
         }
-        if (this.sqlOutputKey != null) {
-            finalResult[this.sqlOutputKey] = sqlCommand;
-        }
         return finalResult;
     }
     _chainType() {
@@ -124,9 +117,6 @@ export class SqlDatabaseChain extends BaseChain {
         return [this.inputKey];
     }
     get outputKeys() {
-        if (this.sqlOutputKey != null) {
-            return [this.outputKey, this.sqlOutputKey];
-        }
         return [this.outputKey];
     }
     static async deserialize(data, SqlDatabaseFromOptionsParams) {

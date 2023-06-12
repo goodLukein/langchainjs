@@ -1,6 +1,5 @@
 export { BaseChain, ChainInputs } from "./base.js";
 export { LLMChain, LLMChainInput } from "./llm_chain.js";
-export { APIChain, APIChainInput, APIChainOptions } from "./api/api_chain.js";
 export { ConversationChain } from "./conversation.js";
 export { SequentialChain, SequentialChainInput, SimpleSequentialChain, SimpleSequentialChainInput, } from "./sequential_chain.js";
 export { StuffDocumentsChain, StuffDocumentsChainInput, MapReduceDocumentsChain, MapReduceDocumentsChainInput, RefineDocumentsChain, RefineDocumentsChainInput, } from "./combine_docs_chain.js";
@@ -14,7 +13,7 @@ export { ConversationalRetrievalQAChain, ConversationalRetrievalQAChainInput, } 
 export { RetrievalQAChain, RetrievalQAChainInput } from "./retrieval_qa.js";
 export { ConstitutionalChainInput, ConstitutionalChain, } from "./constitutional_ai/constitutional_chain.js";
 export { ConstitutionalPrinciple, PRINCIPLES, } from "./constitutional_ai/constitutional_principle.js";
-export { SerializedLLMChain, SerializedSequentialChain, SerializedSimpleSequentialChain, SerializedSqlDatabaseChain, SerializedAnalyzeDocumentChain, SerializedAPIChain, SerializedBaseChain, SerializedChatVectorDBQAChain, SerializedMapReduceDocumentsChain, SerializedStuffDocumentsChain, SerializedVectorDBQAChain, SerializedRefineDocumentsChain, } from "./serde.js";
+export { SerializedLLMChain, SerializedSequentialChain, SerializedSimpleSequentialChain, SerializedSqlDatabaseChain, SerializedAnalyzeDocumentChain, SerializedBaseChain, SerializedChatVectorDBQAChain, SerializedMapReduceDocumentsChain, SerializedStuffDocumentsChain, SerializedVectorDBQAChain, SerializedRefineDocumentsChain, } from "./serde.js";
 export { OpenAIModerationChain } from "./openai_moderation.js";
 export { MultiRouteChain, MultiRouteChainInput, RouterChain, } from "./router/multi_route.js";
 export { LLMRouterChain, LLMRouterChainInput, RouterOutputSchema, } from "./router/llm_router.js";

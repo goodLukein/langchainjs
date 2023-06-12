@@ -4,7 +4,6 @@ exports.ZapierNLARunAction = exports.ZapierNLAWrapper = void 0;
 const base_js_1 = require("./base.cjs");
 const template_js_1 = require("../prompts/template.cjs");
 const async_caller_js_1 = require("../util/async_caller.cjs");
-const env_js_1 = require("../util/env.cjs");
 const zapierNLABaseDescription = "A wrapper around Zapier NLA actions. " +
     "The input to this tool is a natural language instruction, " +
     'for example "get the latest email from my bank" or ' +
@@ -38,7 +37,11 @@ class ZapierNLAWrapper {
             value: void 0
         });
         const zapierNlaApiKey = typeof params === "string" ? params : params?.apiKey;
-        const apiKey = zapierNlaApiKey ?? (0, env_js_1.getEnvironmentVariable)("ZAPIER_NLA_API_KEY");
+        const apiKey = zapierNlaApiKey ??
+            (typeof process !== "undefined"
+                ? // eslint-disable-next-line no-process-env
+                    process.env?.ZAPIER_NLA_API_KEY
+                : undefined);
         if (!apiKey) {
             throw new Error("ZAPIER_NLA_API_KEY not set");
         }

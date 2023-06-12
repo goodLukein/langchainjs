@@ -1,5 +1,5 @@
 import { BaseLanguageModel } from "../../base_language/index.js";
-import { BaseMessagePromptTemplate, ChatPromptTemplate } from "../../prompts/chat.js";
+import { ChatPromptTemplate } from "../../prompts/chat.js";
 import { AgentStep } from "../../schema/index.js";
 import { StructuredTool } from "../../tools/base.js";
 import { Optional } from "../../types/type-utils.js";
@@ -13,8 +13,6 @@ export interface StructuredChatCreatePromptArgs {
     prefix?: string;
     /** List of input variables the final prompt will expect. */
     inputVariables?: string[];
-    /** List of historical prompts from memory.  */
-    memoryPrompts?: BaseMessagePromptTemplate[];
 }
 export type StructuredChatAgentInput = Optional<AgentInput, "outputParser">;
 /**
@@ -40,8 +38,6 @@ export declare class StructuredChatAgent extends Agent {
      * @param args - Arguments to create the prompt with.
      * @param args.suffix - String to put after the list of tools.
      * @param args.prefix - String to put before the list of tools.
-     * @param args.inputVariables List of input variables the final prompt will expect.
-     * @param args.memoryPrompts List of historical prompts from memory.
      */
     static createPrompt(tools: StructuredTool[], args?: StructuredChatCreatePromptArgs): ChatPromptTemplate;
     static fromLLMAndTools(llm: BaseLanguageModel, tools: StructuredTool[], args?: StructuredChatCreatePromptArgs & AgentArgs): StructuredChatAgent;

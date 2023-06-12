@@ -5,7 +5,6 @@ export const Operators = {
 };
 export const Comparators = {
     eq: "eq",
-    ne: "ne",
     lt: "lt",
     gt: "gt",
     lte: "lte",

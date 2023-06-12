@@ -73,9 +73,9 @@ class RetrievalQAChain extends base_js_1.BaseChain {
             prompt: options?.prompt,
         });
         return new this({
-            ...options,
             retriever,
             combineDocumentsChain: qaChain,
+            ...options,
         });
     }
 }

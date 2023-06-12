@@ -1,4 +1,4 @@
-import { AgentAction, AgentFinish, BaseChatMessage, ChainValues, LLMResult } from "../schema/index.js";
+import { AgentAction, AgentFinish, ChainValues, LLMResult } from "../schema/index.js";
 import { BaseCallbackHandler, CallbackHandlerMethods } from "./base.js";
 type BaseCallbackManagerMethods = {
     [K in keyof CallbackHandlerMethods]?: (...args: Parameters<Required<CallbackHandlerMethods>[K]>) => Promise<unknown>;
@@ -47,10 +47,7 @@ export declare class CallbackManager extends BaseCallbackManager implements Base
     constructor(parentRunId?: string);
     handleLLMStart(llm: {
         name: string;
-    }, prompts: string[], runId?: string, _parentRunId?: string | undefined, extraParams?: Record<string, unknown> | undefined): Promise<CallbackManagerForLLMRun>;
-    handleChatModelStart(llm: {
-        name: string;
-    }, messages: BaseChatMessage[][], runId?: string, _parentRunId?: string | undefined, extraParams?: Record<string, unknown> | undefined): Promise<CallbackManagerForLLMRun>;
+    }, prompts: string[], runId?: string): Promise<CallbackManagerForLLMRun>;
     handleChainStart(chain: {
         name: string;
     }, inputs: ChainValues, runId?: string): Promise<CallbackManagerForChainRun>;

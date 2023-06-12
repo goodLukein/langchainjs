@@ -1,7 +1,9 @@
-import { getEnvironmentVariable } from "../util/env.js";
 import { Tool } from "./base.js";
 class BingSerpAPI extends Tool {
-    constructor(apiKey = getEnvironmentVariable("BingApiKey"), params = {}) {
+    constructor(apiKey = typeof process !== "undefined"
+        ? // eslint-disable-next-line no-process-env
+            process.env?.BingApiKey
+        : undefined, params = {}) {
         super();
         Object.defineProperty(this, "name", {
             enumerable: true,

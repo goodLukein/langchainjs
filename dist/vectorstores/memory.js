@@ -30,19 +30,8 @@ export class MemoryVectorStore extends VectorStore {
         }));
         this.memoryVectors = this.memoryVectors.concat(memoryVectors);
     }
-    async similaritySearchVectorWithScore(query, k, filter) {
-        const filterFunction = (memoryVector) => {
-            if (!filter) {
-                return true;
-            }
-            const doc = new Document({
-                metadata: memoryVector.metadata,
-                pageContent: memoryVector.content,
-            });
-            return filter(doc);
-        };
-        const filteredMemoryVectors = this.memoryVectors.filter(filterFunction);
-        const searches = filteredMemoryVectors
+    async similaritySearchVectorWithScore(query, k) {
+        const searches = this.memoryVectors
             .map((vector, index) => ({
             similarity: this.similarity(query, vector.embedding),
             index,
@@ -51,8 +40,8 @@ export class MemoryVectorStore extends VectorStore {
             .slice(0, k);
         const result = searches.map((search) => [
             new Document({
-                metadata: filteredMemoryVectors[search.index].metadata,
-                pageContent: filteredMemoryVectors[search.index].content,
+                metadata: this.memoryVectors[search.index].metadata,
+                pageContent: this.memoryVectors[search.index].content,
             }),
             search.similarity,
         ]);

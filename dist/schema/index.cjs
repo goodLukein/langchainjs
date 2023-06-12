@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BaseEntityStore = exports.BaseFileStore = exports.BaseCache = exports.BaseListChatMessageHistory = exports.BaseChatMessageHistory = exports.BaseRetriever = exports.BasePromptValue = exports.ChatMessage = exports.SystemChatMessage = exports.AIChatMessage = exports.HumanChatMessage = exports.BaseChatMessage = exports.RUN_KEY = void 0;
+exports.BaseFileStore = exports.BaseCache = exports.BaseListChatMessageHistory = exports.BaseChatMessageHistory = exports.BaseRetriever = exports.BasePromptValue = exports.ChatMessage = exports.SystemChatMessage = exports.AIChatMessage = exports.HumanChatMessage = exports.BaseChatMessage = exports.RUN_KEY = void 0;
 exports.RUN_KEY = "__run";
 class BaseChatMessage {
     constructor(text) {
@@ -19,15 +19,6 @@ class BaseChatMessage {
             value: void 0
         });
         this.text = text;
-    }
-    toJSON() {
-        return {
-            type: this._getType(),
-            data: {
-                content: this.text,
-                role: "role" in this ? this.role : undefined,
-            },
-        };
     }
 }
 exports.BaseChatMessage = BaseChatMessage;
@@ -95,6 +86,3 @@ exports.BaseCache = BaseCache;
 class BaseFileStore {
 }
 exports.BaseFileStore = BaseFileStore;
-class BaseEntityStore {
-}
-exports.BaseEntityStore = BaseEntityStore;

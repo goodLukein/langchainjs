@@ -4,7 +4,7 @@ exports.PropertyAssignmentHandler = void 0;
 const base_js_1 = require("./base.cjs");
 class PropertyAssignmentHandler extends base_js_1.NodeHandler {
     async accepts(node) {
-        if (base_js_1.ASTParser.isPropertyAssignment(node)) {
+        if (base_js_1.ASTParser.isProperty(node)) {
             return node;
         }
         else {

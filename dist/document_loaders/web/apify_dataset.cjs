@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ApifyDatasetLoader = void 0;
 const apify_client_1 = require("apify-client");
 const base_js_1 = require("../base.cjs");
-const env_js_1 = require("../../util/env.cjs");
 class ApifyDatasetLoader extends base_js_1.BaseDocumentLoader {
     constructor(datasetId, config) {
         super();
@@ -34,7 +33,9 @@ class ApifyDatasetLoader extends base_js_1.BaseDocumentLoader {
         this.datasetMappingFunction = config.datasetMappingFunction;
     }
     static _getApifyApiToken(config) {
-        return config?.token ?? (0, env_js_1.getEnvironmentVariable)("APIFY_API_TOKEN");
+        return (config?.token ??
+            // eslint-disable-next-line no-process-env
+            (typeof process !== "undefined" ? process.env.APIFY_API_TOKEN : undefined));
     }
     async load() {
         const datasetItems = (await this.apifyClient.dataset(this.datasetId).listItems({ clean: true })).items;

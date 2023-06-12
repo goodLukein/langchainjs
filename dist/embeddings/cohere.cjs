@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CohereEmbeddings = void 0;
 const chunk_js_1 = require("../util/chunk.cjs");
-const env_js_1 = require("../util/env.cjs");
 const base_js_1 = require("./base.cjs");
 /**
  * A class for generating embeddings using the Cohere API.
@@ -38,7 +37,11 @@ class CohereEmbeddings extends base_js_1.Embeddings {
             writable: true,
             value: void 0
         });
-        const apiKey = fields?.apiKey || (0, env_js_1.getEnvironmentVariable)("COHERE_API_KEY");
+        const apiKey = fields?.apiKey ||
+            (typeof process !== "undefined"
+                ? // eslint-disable-next-line no-process-env
+                    process.env?.COHERE_API_KEY
+                : undefined);
         if (!apiKey) {
             throw new Error("Cohere API key not found");
         }

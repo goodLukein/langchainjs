@@ -8,7 +8,6 @@ const openai_1 = require("openai");
 const base_js_1 = require("./base.cjs");
 const axios_fetch_adapter_js_1 = __importDefault(require("../util/axios-fetch-adapter.cjs"));
 const async_caller_js_1 = require("../util/async_caller.cjs");
-const env_js_1 = require("../util/env.cjs");
 class OpenAIModerationChain extends base_js_1.BaseChain {
     constructor(fields) {
         super(fields);
@@ -62,7 +61,9 @@ class OpenAIModerationChain extends base_js_1.BaseChain {
         });
         this.throwError = fields?.throwError ?? false;
         this.openAIApiKey =
-            fields?.openAIApiKey ?? (0, env_js_1.getEnvironmentVariable)("OPENAI_API_KEY");
+            fields?.openAIApiKey ??
+                // eslint-disable-next-line no-process-env
+                (typeof process !== "undefined" ? process.env.OPENAI_API_KEY : undefined);
         if (!this.openAIApiKey) {
             throw new Error("OpenAI API key not found");
         }

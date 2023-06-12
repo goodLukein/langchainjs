@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Replicate = void 0;
-const env_js_1 = require("../util/env.cjs");
 const base_js_1 = require("./base.cjs");
 class Replicate extends base_js_1.LLM {
     constructor(fields) {
@@ -24,7 +23,9 @@ class Replicate extends base_js_1.LLM {
             writable: true,
             value: void 0
         });
-        const apiKey = fields?.apiKey ?? (0, env_js_1.getEnvironmentVariable)("REPLICATE_API_KEY");
+        const apiKey = fields?.apiKey ??
+            // eslint-disable-next-line no-process-env
+            (typeof process !== "undefined" && process.env?.REPLICATE_API_KEY);
         if (!apiKey) {
             throw new Error("Please set the REPLICATE_API_KEY environment variable");
         }
@@ -36,13 +37,13 @@ class Replicate extends base_js_1.LLM {
         return "replicate";
     }
     /** @ignore */
-    async _call(prompt, options) {
+    async _call(prompt, _stop) {
         const imports = await Replicate.imports();
         const replicate = new imports.Replicate({
             userAgent: "langchain",
             auth: this.apiKey,
         });
-        const output = await this.caller.callWithOptions({ signal: options.signal }, () => replicate.run(this.model, {
+        const output = await this.caller.call(() => replicate.run(this.model, {
             wait: true,
             input: {
                 ...this.input,

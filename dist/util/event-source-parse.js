@@ -13,18 +13,9 @@ export const EventStreamContentType = "text/event-stream";
  */
 export async function getBytes(stream, onChunk) {
     const reader = stream.getReader();
-    // CHANGED: Introduced a "flush" mechanism to process potential pending messages when the stream ends.
-    //          This change is essential to ensure that we capture every last piece of information from streams,
-    //          such as those from Azure OpenAI, which may not terminate with a blank line. Without this
-    //          mechanism, we risk ignoring a possibly significant last message.
-    //          See https://github.com/hwchase17/langchainjs/issues/1299 for details.
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-        const result = await reader.read();
-        if (result.done) {
-            onChunk(new Uint8Array(), true);
-            break;
-        }
+    let result;
+    // eslint-disable-next-line no-cond-assign
+    while (!(result = await reader.read()).done) {
         onChunk(result.value);
     }
 }
@@ -40,11 +31,7 @@ export function getLines(onLine) {
     let fieldLength; // length of the `field` portion of the line
     let discardTrailingNewline = false;
     // return a function that can process each incoming byte chunk:
-    return function onChunk(arr, flush) {
-        if (flush) {
-            onLine(arr, 0, true);
-            return;
-        }
+    return function onChunk(arr) {
         if (buffer === undefined) {
             buffer = arr;
             position = 0;
@@ -115,14 +102,7 @@ export function getMessages(onMessage, onId, onRetry) {
     let message = newMessage();
     const decoder = new TextDecoder();
     // return a function that can process each incoming line buffer:
-    return function onLine(line, fieldLength, flush) {
-        if (flush) {
-            if (!isEmpty(message)) {
-                onMessage?.(message);
-                message = newMessage();
-            }
-            return;
-        }
+    return function onLine(line, fieldLength) {
         if (line.length === 0) {
             // empty line denotes end of message. Trigger the callback and start a new message:
             onMessage?.(message);
@@ -176,10 +156,4 @@ function newMessage() {
         id: "",
         retry: undefined,
     };
-}
-function isEmpty(message) {
-    return (message.data === "" &&
-        message.event === "" &&
-        message.id === "" &&
-        message.retry === undefined);
 }

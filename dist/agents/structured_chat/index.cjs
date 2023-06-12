@@ -66,27 +66,20 @@ class StructuredChatAgent extends agent_js_1.Agent {
      * @param args - Arguments to create the prompt with.
      * @param args.suffix - String to put after the list of tools.
      * @param args.prefix - String to put before the list of tools.
-     * @param args.inputVariables List of input variables the final prompt will expect.
-     * @param args.memoryPrompts List of historical prompts from memory.
      */
     static createPrompt(tools, args) {
-        const { prefix = prompt_js_2.PREFIX, suffix = prompt_js_2.SUFFIX, inputVariables = ["input", "agent_scratchpad"], memoryPrompts = [], } = args ?? {};
+        const { prefix = prompt_js_2.PREFIX, suffix = prompt_js_2.SUFFIX } = args ?? {};
         const template = [prefix, prompt_js_2.FORMAT_INSTRUCTIONS, suffix].join("\n\n");
-        const humanMessageTemplate = "{input}\n\n{agent_scratchpad}";
         const messages = [
             new chat_js_1.SystemMessagePromptTemplate(new prompt_js_1.PromptTemplate({
                 template,
-                inputVariables,
+                inputVariables: [],
                 partialVariables: {
                     tool_schemas: StructuredChatAgent.createToolSchemasString(tools),
                     tool_names: tools.map((tool) => tool.name).join(", "),
                 },
             })),
-            ...memoryPrompts,
-            new chat_js_1.HumanMessagePromptTemplate(new prompt_js_1.PromptTemplate({
-                template: humanMessageTemplate,
-                inputVariables,
-            })),
+            chat_js_1.HumanMessagePromptTemplate.fromTemplate("{input}\n\n{agent_scratchpad}"),
         ];
         return chat_js_1.ChatPromptTemplate.fromPromptMessages(messages);
     }

@@ -34,4 +34,4 @@ export type QueryConstructorChainOptions = {
     allowedComparators?: Comparator[];
     allowedOperators?: Operator[];
 };
-export declare function loadQueryConstructorChain(opts: QueryConstructorChainOptions): LLMChain<string>;
+export declare function loadQueryContstructorChain(opts: QueryConstructorChainOptions): LLMChain<string>;

@@ -1,16 +1,11 @@
 import { BaseRun, Run, RunType } from "../callbacks/handlers/tracer.js";
-import { LangChainTracer } from "../callbacks/handlers/tracer_langchain.js";
+import { LangChainTracer, TracerSession } from "../callbacks/handlers/tracer_langchain.js";
 import { ChainValues, LLMResult, RunInputs, RunOutputs } from "../schema/index.js";
 import { BaseLanguageModel } from "../base_language/index.js";
 import { BaseChain } from "../chains/base.js";
 import { BaseLLM } from "../llms/base.js";
 import { BaseChatModel } from "../chat_models/base.js";
 import { AsyncCallerParams } from "../util/async_caller.js";
-export interface TracerSession {
-    id: string;
-    tenant_id: string;
-    name: string;
-}
 export interface RunResult extends BaseRun {
     name: string;
     session_id: string;
@@ -62,20 +57,22 @@ export declare function isChain(llm: BaseLanguageModel | (() => Promise<BaseChai
 export declare class LangChainPlusClient {
     private apiKey?;
     private apiUrl;
+    private tenantId;
     private caller;
-    private timeout;
     constructor(config: {
+        tenantId?: string;
         apiUrl?: string;
         apiKey?: string;
-        timeout?: number;
         callerOptions?: AsyncCallerParams;
     });
     static create(config?: {
         apiUrl?: string;
         apiKey?: string;
+        tenantId?: string;
     }): Promise<LangChainPlusClient>;
     private validateApiKeyIfHosted;
     private get headers();
+    private get queryParams();
     private _get;
     readRun(runId: string): Promise<Run>;
     listRuns({ sessionId, sessionName, executionOrder, runType, error, }: ListRunsParams): Promise<Run[]>;

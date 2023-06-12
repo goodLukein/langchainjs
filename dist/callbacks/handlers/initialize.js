@@ -1,7 +1,6 @@
-import { LangChainTracer } from "./tracer_langchain.js";
-import { LangChainTracerV1 } from "./tracer_langchain_v1.js";
+import { LangChainTracer } from "./tracers.js";
 export async function getTracingCallbackHandler(session) {
-    const tracer = new LangChainTracerV1();
+    const tracer = new LangChainTracer();
     if (session) {
         await tracer.loadSession(session);
     }
@@ -9,7 +8,4 @@ export async function getTracingCallbackHandler(session) {
         await tracer.loadDefaultSession();
     }
     return tracer;
-}
-export async function getTracingV2CallbackHandler() {
-    return new LangChainTracer();
 }

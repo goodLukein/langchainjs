@@ -1,21 +1,23 @@
+import type meriyahT from "meriyah";
 export declare abstract class NodeHandler {
     protected parentHandler?: NodeHandler | undefined;
     constructor(parentHandler?: NodeHandler | undefined);
-    abstract accepts(node: ExpressionNode): Promise<ExpressionNode | boolean>;
-    abstract handle(node: ExpressionNode): Promise<any>;
+    abstract accepts(node: meriyahT.ESTree.Node): Promise<meriyahT.ESTree.Node | boolean>;
+    abstract handle(node: meriyahT.ESTree.Node): Promise<any>;
 }
 export declare class ASTParser {
-    static astParseInstance: ParseFunction;
-    static importASTParser(): Promise<ParseFunction>;
-    static isProgram(node: ExpressionNode): node is Program;
-    static isExpressionStatement(node: ExpressionNode): node is ExpressionStatement;
-    static isCallExpression(node: ExpressionNode): node is CallExpression;
-    static isStringLiteral(node: ExpressionNode): node is StringLiteral;
-    static isNumericLiteral(node: ExpressionNode): node is NumericLiteral;
-    static isBooleanLiteral(node: ExpressionNode): node is BooleanLiteral;
-    static isIdentifier(node: ExpressionNode): node is Identifier;
-    static isObjectExpression(node: ExpressionNode): node is ObjectExpression;
-    static isArrayExpression(node: ExpressionNode): node is ArrayExpression;
-    static isPropertyAssignment(node: ExpressionNode): node is PropertyAssignment;
-    static isMemberExpression(node: ExpressionNode): node is MemberExpression;
+    static astParseInstance: typeof meriyahT.parseScript;
+    static importASTParser(): Promise<typeof meriyahT.parseScript>;
+    static isProgram(node: meriyahT.ESTree.Node): node is meriyahT.ESTree.Program;
+    static isExpressionStatement(node: meriyahT.ESTree.Node): node is meriyahT.ESTree.ExpressionStatement;
+    static isCallExpression(node: meriyahT.ESTree.Node): node is meriyahT.ESTree.CallExpression;
+    static isLiteral(node: meriyahT.ESTree.Node): node is meriyahT.ESTree.Literal;
+    static isStringLiteral(node: meriyahT.ESTree.Node): node is meriyahT.ESTree.Literal;
+    static isNumericLiteral(node: meriyahT.ESTree.Node): node is meriyahT.ESTree.Literal;
+    static isBooleanLiteral(node: meriyahT.ESTree.Node): node is meriyahT.ESTree.Literal;
+    static isIdentifier(node: meriyahT.ESTree.Node): node is meriyahT.ESTree.Identifier;
+    static isObjectExpression(node: meriyahT.ESTree.Node): node is meriyahT.ESTree.ObjectExpression;
+    static isArrayExpression(node: meriyahT.ESTree.Node): node is meriyahT.ESTree.ArrayExpression;
+    static isProperty(node: meriyahT.ESTree.Node): node is meriyahT.ESTree.Property;
+    static isMemberExpression(node: meriyahT.ESTree.Node): node is meriyahT.ESTree.MemberExpression;
 }

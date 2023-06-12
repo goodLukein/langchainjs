@@ -19,7 +19,6 @@ export type ZeroShotAgentInput = Optional<AgentInput, "outputParser">;
  * @augments Agent
  */
 export declare class ZeroShotAgent extends Agent {
-    ToolType: Tool;
     constructor(input: ZeroShotAgentInput);
     _agentType(): "zero-shot-react-description";
     observationPrefix(): string;

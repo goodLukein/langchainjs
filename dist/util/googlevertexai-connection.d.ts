@@ -9,5 +9,5 @@ export declare class GoogleVertexAIConnection<CallOptions extends BaseLanguageMo
     model: string;
     auth: GoogleAuth;
     constructor(fields: GoogleVertexAIConnectionParams | undefined, caller: AsyncCaller);
-    request(instances: InstanceType[], parameters: GoogleVertexAIModelParams, options: CallOptions): Promise<GoogleVertexAILLMResponse<PredictionType>>;
+    request(instances: [InstanceType], parameters: GoogleVertexAIModelParams, options: CallOptions): Promise<GoogleVertexAILLMResponse<PredictionType>>;
 }

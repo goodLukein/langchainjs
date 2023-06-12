@@ -18,15 +18,6 @@ import { BaseOutputParser } from "../schema/output_parser.js";
  *      ]
  */
 export declare class ExpressionParser extends BaseOutputParser<ParsedType> {
-    parser: ParseFunction;
-    /**
-     * We should separate loading the parser into its own function
-     * because loading the grammar takes some time. If there are
-     * multiple concurrent parse calls, it's faster to just wait
-     * for building the parser once and then use it for all
-     * subsequent calls. See expression.test.ts for an example.
-     */
-    ensureParser(): Promise<void>;
     parse(text: string): Promise<ParsedType>;
     getFormatInstructions(): string;
 }

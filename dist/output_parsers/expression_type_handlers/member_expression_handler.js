@@ -27,13 +27,13 @@ export class MemberExpressionHandler extends NodeHandler {
         if (ASTParser.isIdentifier(object)) {
             identifier = object.name.replace(/^["'](.+(?=["']$))["']$/, "$1");
         }
-        else if (ASTParser.isStringLiteral(object)) {
+        else if (ASTParser.isLiteral(object)) {
             identifier = `${object.value}`.replace(/^["'](.+(?=["']$))["']$/, "$1");
         }
         else {
             throw new Error("Invalid object type");
         }
-        if (object.type !== "Identifier" && object.type !== "StringLiteral") {
+        if (object.type !== "Identifier" && object.type !== "Literal") {
             throw new Error("ArrayExpression is not supported");
         }
         return { type: "member_expression", identifier, property: prop };

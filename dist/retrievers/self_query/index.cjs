@@ -1,13 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SelfQueryRetriever = exports.FunctionalTranslator = exports.BasicTranslator = exports.BaseTranslator = void 0;
+exports.SelfQueryRetriever = exports.BasicTranslator = exports.BaseTranslator = void 0;
 const index_js_1 = require("../../chains/query_constructor/index.cjs");
 const index_js_2 = require("../../schema/index.cjs");
-const functional_js_1 = require("./functional.cjs");
-Object.defineProperty(exports, "FunctionalTranslator", { enumerable: true, get: function () { return functional_js_1.FunctionalTranslator; } });
-const base_js_1 = require("./base.cjs");
-Object.defineProperty(exports, "BaseTranslator", { enumerable: true, get: function () { return base_js_1.BaseTranslator; } });
-Object.defineProperty(exports, "BasicTranslator", { enumerable: true, get: function () { return base_js_1.BasicTranslator; } });
+const translator_js_1 = require("./translator.cjs");
+Object.defineProperty(exports, "BaseTranslator", { enumerable: true, get: function () { return translator_js_1.BaseTranslator; } });
+Object.defineProperty(exports, "BasicTranslator", { enumerable: true, get: function () { return translator_js_1.BasicTranslator; } });
 class SelfQueryRetriever extends index_js_2.BaseRetriever {
     constructor(options) {
         super();
@@ -59,20 +57,21 @@ class SelfQueryRetriever extends index_js_2.BaseRetriever {
             return this.vectorStore.similaritySearch(query, this.searchParams?.k, this.searchParams?.filter);
         }
     }
-    static fromLLM(options) {
-        const { structuredQueryTranslator, allowedComparators, allowedOperators, llm, documentContents, attributeInfo, examples, vectorStore, ...rest } = options;
-        const llmChain = (0, index_js_1.loadQueryConstructorChain)({
-            llm,
-            documentContents,
-            attributeInfo,
-            examples,
-            allowedComparators: allowedComparators ?? structuredQueryTranslator.allowedComparators,
-            allowedOperators: allowedOperators ?? structuredQueryTranslator.allowedOperators,
+    static fromLLM(opts) {
+        const { structuredQueryTranslator } = opts;
+        const allowedComparators = opts.allowedComparators ?? structuredQueryTranslator.allowedComparators;
+        const allowedOperators = opts.allowedOperators ?? structuredQueryTranslator.allowedOperators;
+        const llmChain = (0, index_js_1.loadQueryContstructorChain)({
+            llm: opts.llm,
+            documentContents: opts.documentContents,
+            attributeInfo: opts.attributeInfo,
+            examples: opts.examples,
+            allowedComparators,
+            allowedOperators,
         });
         return new SelfQueryRetriever({
-            ...rest,
+            vectorStore: opts.vectorStore,
             llmChain,
-            vectorStore,
             structuredQueryTranslator,
         });
     }

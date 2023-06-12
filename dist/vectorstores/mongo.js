@@ -1,6 +1,5 @@
 import { VectorStore } from "./base.js";
 import { Document } from "../document.js";
-/** @deprecated use `MongoDBAtlasVectorSearch` instead. */
 export class MongoVectorStore extends VectorStore {
     constructor(embeddings, args) {
         super(embeddings, args);

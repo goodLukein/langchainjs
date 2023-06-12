@@ -86,9 +86,6 @@ class TimeWeightedVectorStoreRetriever extends index_js_1.BaseRetriever {
         this.otherScoreKeys = fields.otherScoreKeys ?? [];
         this.defaultSalience = fields.defaultSalience ?? null;
     }
-    getMemoryStream() {
-        return this.memoryStream;
-    }
     /**
      * Get relevant documents based on time-weighted relevance
      * @param query - The query to search for
@@ -169,9 +166,6 @@ class TimeWeightedVectorStoreRetriever extends index_js_1.BaseRetriever {
             const bufferedDoc = this.memoryStream[doc.metadata[exports.BUFFER_IDX]];
             bufferedDoc.metadata[exports.LAST_ACCESSED_AT_KEY] = now;
             results.push(bufferedDoc);
-            if (results.length > this.k) {
-                break;
-            }
         }
         return results;
     }

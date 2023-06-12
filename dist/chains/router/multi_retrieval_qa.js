@@ -6,26 +6,13 @@ import { LLMRouterChain } from "./llm_router.js";
 import { ConversationChain, DEFAULT_TEMPLATE, } from "../../chains/conversation.js";
 import { STRUCTURED_MULTI_RETRIEVAL_ROUTER_TEMPLATE } from "./multi_retrieval_prompt.js";
 import { zipEntries } from "./utils.js";
-import { RetrievalQAChain, } from "../../chains/retrieval_qa.js";
+import { RetrievalQAChain } from "../../chains/retrieval_qa.js";
 import { RouterOutputParser } from "../../output_parsers/router.js";
 export class MultiRetrievalQAChain extends MultiRouteChain {
     get outputKeys() {
         return ["result"];
     }
-    /**
-     * @deprecated Use `fromRetrieversAndPrompts` instead
-     */
     static fromRetrievers(llm, retrieverNames, retrieverDescriptions, retrievers, retrieverPrompts, defaults, options) {
-        return MultiRetrievalQAChain.fromLLMAndRetrievers(llm, {
-            retrieverNames,
-            retrieverDescriptions,
-            retrievers,
-            retrieverPrompts,
-            defaults,
-            multiRetrievalChainOpts: options,
-        });
-    }
-    static fromLLMAndRetrievers(llm, { retrieverNames, retrieverDescriptions, retrievers, retrieverPrompts, defaults, multiRetrievalChainOpts, retrievalQAChainOpts, }) {
         const { defaultRetriever, defaultPrompt, defaultChain } = defaults ?? {};
         if (defaultPrompt && !defaultRetriever) {
             throw new Error("`default_retriever` must be specified if `default_prompt` is \nprovided. Received only `default_prompt`.");
@@ -57,9 +44,9 @@ export class MultiRetrievalQAChain extends MultiRouteChain {
         const routerChain = LLMRouterChain.fromLLM(llm, routerPrompt);
         const prompts = retrieverPrompts ?? retrievers.map(() => null);
         const destinationChains = zipEntries(retrieverNames, retrievers, prompts).reduce((acc, [name, retriever, prompt]) => {
-            const opt = retrievalQAChainOpts ?? {};
+            let opt;
             if (prompt) {
-                opt.prompt = prompt;
+                opt = { prompt };
             }
             acc[name] = RetrievalQAChain.fromLLM(llm, retriever, opt);
             return acc;
@@ -70,7 +57,6 @@ export class MultiRetrievalQAChain extends MultiRouteChain {
         }
         else if (defaultRetriever) {
             _defaultChain = RetrievalQAChain.fromLLM(llm, defaultRetriever, {
-                ...retrievalQAChainOpts,
                 prompt: defaultPrompt,
             });
         }
@@ -87,10 +73,10 @@ export class MultiRetrievalQAChain extends MultiRouteChain {
             });
         }
         return new MultiRetrievalQAChain({
-            ...multiRetrievalChainOpts,
             routerChain,
             destinationChains,
             defaultChain: _defaultChain,
+            ...options,
         });
     }
     _chainType() {

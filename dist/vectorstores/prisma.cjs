@@ -5,36 +5,22 @@ const base_js_1 = require("./base.cjs");
 const document_js_1 = require("../document.cjs");
 const IdColumnSymbol = Symbol("id");
 const ContentColumnSymbol = Symbol("content");
-const OpMap = {
-    equals: "=",
-    lt: "<",
-    lte: "<=",
-    gt: ">",
-    gte: ">=",
-    not: "<>",
-};
 class PrismaVectorStore extends base_js_1.VectorStore {
     constructor(embeddings, config) {
         super(embeddings, {});
-        Object.defineProperty(this, "tableName", {
+        Object.defineProperty(this, "tableSql", {
             enumerable: true,
             configurable: true,
             writable: true,
             value: void 0
         });
-        Object.defineProperty(this, "vectorColumnName", {
+        Object.defineProperty(this, "vectorColumnSql", {
             enumerable: true,
             configurable: true,
             writable: true,
             value: void 0
         });
-        Object.defineProperty(this, "selectColumns", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "filter", {
+        Object.defineProperty(this, "selectSql", {
             enumerable: true,
             configurable: true,
             writable: true,
@@ -75,18 +61,20 @@ class PrismaVectorStore extends base_js_1.VectorStore {
             throw new Error("Missing content column");
         this.idColumn = idColumn;
         this.contentColumn = contentColumn;
-        this.tableName = config.tableName;
-        this.vectorColumnName = config.vectorColumnName;
-        this.selectColumns = entries
+        this.tableSql = this.Prisma.raw(`"${config.tableName}"`);
+        this.vectorColumnSql = this.Prisma.raw(`"${config.vectorColumnName}"`);
+        this.selectSql = this.Prisma.raw(entries
             .map(([key, alias]) => (alias && key) || null)
-            .filter((x) => !!x);
-        if (config.filter) {
-            this.filter = config.filter;
-        }
+            .filter((x) => !!x)
+            .map((key) => `"${key}"`)
+            .join(", "));
     }
     static withModel(db) {
         function create(embeddings, config) {
-            return new PrismaVectorStore(embeddings, { ...config, db });
+            return new PrismaVectorStore(embeddings, {
+                ...config,
+                db,
+            });
         }
         async function fromTexts(texts, metadatas, embeddings, dbConfig) {
             const docs = [];
@@ -123,42 +111,25 @@ class PrismaVectorStore extends base_js_1.VectorStore {
         return this.addVectors(await this.embeddings.embedDocuments(texts), documents);
     }
     async addVectors(vectors, documents) {
-        // table name, column name cannot be parametrised
-        // these fields are thus not escaped by Prisma and can be dangerous if user input is used
-        const idColumnRaw = this.Prisma.raw(`"${this.idColumn}"`);
-        const tableNameRaw = this.Prisma.raw(`"${this.tableName}"`);
-        const vectorColumnRaw = this.Prisma.raw(`"${this.vectorColumnName}"`);
+        const idSql = this.Prisma.raw(`"${this.idColumn}"`);
         await this.db.$transaction(vectors.map((vector, idx) => this.db.$executeRaw `
-          UPDATE ${tableNameRaw}
-          SET ${vectorColumnRaw} = ${`[${vector.join(",")}]`}::vector
-          WHERE ${idColumnRaw} = ${documents[idx].metadata[this.idColumn]}
+          UPDATE ${this.tableSql}
+          SET ${this.vectorColumnSql} = ${`[${vector.join(",")}]`}::vector
+          WHERE ${idSql} = ${documents[idx].metadata[this.idColumn]}
         `));
     }
     async similaritySearch(query, k = 4) {
         const results = await this.similaritySearchVectorWithScore(await this.embeddings.embedQuery(query), k);
         return results.map((result) => result[0]);
     }
-    async similaritySearchWithScore(query, k, filter) {
-        return super.similaritySearchWithScore(query, k, filter);
-    }
-    async similaritySearchVectorWithScore(query, k, filter) {
-        // table name, column names cannot be parametrised
-        // these fields are thus not escaped by Prisma and can be dangerous if user input is used
-        const vectorColumnRaw = this.Prisma.raw(`"${this.vectorColumnName}"`);
-        const tableNameRaw = this.Prisma.raw(`"${this.tableName}"`);
-        const selectRaw = this.Prisma.raw(this.selectColumns.map((x) => `"${x}"`).join(", "));
-        const vector = `[${query.join(",")}]`;
-        const articles = await this.db.$queryRaw(this.Prisma.join([
-            this.Prisma.sql `
-            SELECT ${selectRaw}, ${vectorColumnRaw} <=> ${vector}::vector as "_distance"
-            FROM ${tableNameRaw}
-          `,
-            this.buildSqlFilterStr(filter ?? this.filter),
-            this.Prisma.sql `
-            ORDER BY "_distance" ASC
-            LIMIT ${k};
-          `,
-        ].filter((x) => x != null), ""));
+    async similaritySearchVectorWithScore(query, k) {
+        const vectorQuery = `[${query.join(",")}]`;
+        const articles = await this.db.$queryRaw `
+      SELECT ${this.selectSql}, ${this.vectorColumnSql} <=> ${vectorQuery}::vector as "_distance" 
+      FROM ${this.tableSql}
+      ORDER BY "_distance" ASC
+      LIMIT ${k};
+    `;
         const results = [];
         for (const article of articles) {
             if (article._distance != null && article[this.contentColumn] != null) {
@@ -172,17 +143,6 @@ class PrismaVectorStore extends base_js_1.VectorStore {
             }
         }
         return results;
-    }
-    buildSqlFilterStr(filter) {
-        if (filter == null)
-            return null;
-        return this.Prisma.join(Object.entries(filter).flatMap(([key, ops]) => Object.entries(ops).map(([opName, value]) => {
-            // column name, operators cannot be parametrised
-            // these fields are thus not escaped by Prisma and can be dangerous if user input is used
-            const colRaw = this.Prisma.raw(`"${key}"`);
-            const opRaw = this.Prisma.raw(OpMap[opName]);
-            return this.Prisma.sql `${colRaw} ${opRaw} ${value}`;
-        })), " AND ", " WHERE ");
     }
     static async fromTexts(texts, metadatas, embeddings, dbConfig) {
         const docs = [];
