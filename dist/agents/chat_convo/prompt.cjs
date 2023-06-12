@@ -46,7 +46,7 @@ USER'S INPUT
 --------------------
 Here is the user's input (remember to respond with a markdown code snippet of a json blob with a single action, and NOTHING else, and remember to not break character):
 
-{{{{input}}}}`;
+{{input}}`;
 exports.TEMPLATE_TOOL_RESPONSE = `TOOL RESPONSE:
 ---------------------
 {observation}
