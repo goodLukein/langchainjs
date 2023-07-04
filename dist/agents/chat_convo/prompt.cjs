@@ -31,7 +31,7 @@ Use this if you want to respond directly to the human. Markdown code snippet for
 \`\`\`json
 {{{{
     "action": "Final Answer",
-    "action_input": string \\ You should put what you want to return to user here and make sure to use valid json newline characters. This must be written as if it was written by the character you are roleplaying and you are not to break character.
+    "action_input": string \\ You should put what you want to return to user here and make sure to use valid json newline characters. This must be written as if it was written by the character you are roleplaying and you are not to break character or include any aplogies about failing to understand the prompt.
 }}}}
 \`\`\``;
 exports.DEFAULT_SUFFIX = `TOOLS
